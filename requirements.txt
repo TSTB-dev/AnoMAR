@@ -3,3 +3,7 @@ torchvision
 matplotlib
 tqdm
 einops
+tensorboard
+tensorboardX
+pyyaml
+timm

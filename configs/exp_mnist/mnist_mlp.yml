@@ -1,0 +1,38 @@
+diffusion:
+  model_type: 'mlp'
+  num_classes: 10
+  target_channels: 784
+  z_channels: 256
+  depth: 4
+  width: 128
+  num_sampling_steps: '100'
+  grad_checkpoint: false
+data:
+  dataset_name: 'mnist'
+  data_root: 'data'
+  num_normal_samples: -1
+  multi_category: false
+  train: true
+  batch_size: 128
+  img_size: 28
+  transform_type: 'default'
+  num_workers: 1
+  pin_memory: true
+optimizer:
+  optimizer_name: 'adamw'
+  start_lr: 0.001
+  max_lr: 0.01
+  min_lr: 0
+  weight_decay: 0.0
+  scheduler_type: 'cosine'
+  warmup_epochs: 10
+  num_epochs: 1000
+  grad_clip: 0.0
+logging:
+  log_interval: 100
+  save_interval: 10
+  save_images: false
+  save_dir: 'mnist_mlp_d8w256'
+meta:
+  seed: 42
+  device: 'cuda'

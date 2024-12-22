@@ -198,6 +198,7 @@ class GaussianDiffusion:
             model_log_variance = frac * max_log + (1 - frac) * min_log  # (B, C, H, W)
             model_variance = torch.exp(model_log_variance)
         else:
+            model_mean_values = model_output
             model_variances, model_log_variances = {
                 ModelVarType.FIXED_LARGE: (
                     np.append(self.posterior_variance[1], self.betas[1:]),
@@ -418,7 +419,7 @@ class GaussianDiffusion:
             progress=progress,
             temperature=temperature
         ):
-            final = sample["sample"]
+            final = sample
         return final["sample"]
     
     def ddim_sample(
@@ -661,7 +662,7 @@ class GaussianDiffusion:
         decoder_nll = -discretized_gaussian_log_likelihood(
             x_start, means=out["mean"], log_scales=out["log_variance"] * 0.5
         )  # (B, C, H, W)
-        assert decoder_nll.shape == kl.shape
+        assert decoder_nll.shape == x_start.shape
         decoder_nll = mean_flat(decoder_nll) / np.log(2.0)  # (B, )
         
         # For the first timestep, we only have the decoder NLL
@@ -710,7 +711,7 @@ class GaussianDiffusion:
                 terms["loss"] *= self.num_timesteps  # rescale the KL loss
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
             model_output = model(x_t, t, **model_kwargs)
-            
+
             if self.model_var_type in [
                 ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE
             ]:
@@ -729,6 +730,8 @@ class GaussianDiffusion:
                 )["output"]
                 if self.loss_type == LossType.RESCALED_MSE:
                     terms["vb"] *= self.num_timesteps / 1000.0  # rescale the KL loss without this, the MSE term is too small than vb.
+            else:
+                model_mean_values = model_output
             
             target = {
                 ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
@@ -737,13 +740,14 @@ class GaussianDiffusion:
                 ModelMeanType.START_X: x_start,
                 ModelMeanType.EPSILON: noise,
             }[self.model_mean_type]
-            assert model_mean_values == target.shape == x_start.shape
-            terms["mse"] = mean_flat((target - model_output) ** 2)
+            assert model_mean_values.shape == target.shape == x_start.shape
+            terms["mse"] = mean_flat((target - model_mean_values) ** 2)
             if "vb" in terms:
                 terms["loss"] = terms["mse"] + terms["vb"]
             else:
                 terms["loss"] = terms["mse"]
         else:
             raise NotImplementedError(f"Loss type {self.loss_type} not implemented.")
-    
+
+        return terms
                 
