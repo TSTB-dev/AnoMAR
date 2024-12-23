@@ -39,6 +39,7 @@ class MVTecAD(Dataset):
         cls_label=False, 
         anom_only=False,
         normal_only=False,
+        **kwargs
     ):
         """Dataset for MVTec AD.
         Args:
@@ -79,8 +80,8 @@ class MVTecAD(Dataset):
                 else:
                     self.labels.append(1)
 
-        self.normal_indices = [i for i, label in enumerate(self.labels) if label == 0]
-        self.anom_indices = [i for i, label in enumerate(self.labels) if label == 1]
+            self.normal_indices = [i for i, label in enumerate(self.labels) if label == 0]
+            self.anom_indices = [i for i, label in enumerate(self.labels) if label == 1]
         self.num_classes = len(AD_CLASSES)
         
     def __getitem__(self, index):

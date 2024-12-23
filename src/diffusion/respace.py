@@ -10,7 +10,7 @@ from typing import Tuple, List, Set
 
 from .gaussian_diffusion import GaussianDiffusion
 
-def space_timesteps(num_timesteps: int, section_counts: List[int] | str) -> Set[int]:
+def space_timesteps(num_timesteps: int, section_counts: List[int]) -> Set[int]:
     """Create a list of timesteps to use from an original diffusion process, given the number of timesteps we want to take from 
     equally-sized portions of the original process. E.g., if there's 300 timesteps and the section counts are [10, 15, 20], then
     the first 100 steps are strided by 10, the next 100 steps are strided by 15, and the last 100 steps are strided by 20.

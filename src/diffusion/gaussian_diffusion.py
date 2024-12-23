@@ -53,7 +53,7 @@ class GaussianDiffusion:
     def __init__(
         self, 
         *,
-        betas: np.ndarray | list[float],
+        betas: np.ndarray,
         model_mean_type: ModelMeanType, 
         model_var_type: ModelVarType,
         loss_type: LossType,
