@@ -1,5 +1,7 @@
 data/
 results/
+env/
+ad_dit_d8w768/
 weights/
 
 # Byte-compiled / optimized / DLL files
