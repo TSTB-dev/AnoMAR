@@ -1,7 +1,7 @@
 import torch.nn as nn
 import sys
 sys.path.append('/src/backbones')
-from efficientnet import build_efficient
+from .efficientnet import build_efficient
 
 def get_pdn_small(out_channels=384, padding=False):
     pad_mult = 1 if padding else 0

@@ -33,7 +33,7 @@ PREDICTOR_SUPPORTEED_MODELS = [
 class MaskedImageModelingModel(nn.Module):
     def __init__(
         self, 
-        in_res=64,
+        in_resolution=64,
         in_channels=3,
         patch_size=2, 
         enc_emb_size=256,
@@ -47,7 +47,7 @@ class MaskedImageModelingModel(nn.Module):
         layer_norm=nn.LayerNorm,
     ):
         super(MaskedImageModelingModel, self).__init__()
-        self.in_res = in_res
+        self.in_res = in_resolution
         self.in_channels = in_channels
         self.patch_size = patch_size
         self.enc_emb_size = enc_emb_size
@@ -60,10 +60,10 @@ class MaskedImageModelingModel(nn.Module):
         self.num_pred_mlp_ratio = num_pred_mlp_ratio
         self.layer_norm = layer_norm
         
-        self.num_patches = (in_res // patch_size) ** 2
+        self.num_patches = (in_resolution // patch_size) ** 2
         
         self.encoder = VisionTransformerEncoder(
-            in_res, self.in_channels, patch_size, enc_emb_size, num_enc_blocks, num_enc_heads, num_enc_mlp_ratio, layer_norm
+            in_resolution, self.in_channels, patch_size, enc_emb_size, num_enc_blocks, num_enc_heads, num_enc_mlp_ratio, layer_norm
         )
         
         self.predictor = VisionTransformerPredictor(
@@ -107,8 +107,8 @@ class MaskedImageModelingModel(nn.Module):
                 "pred_attention_maps": torch.Tensor, shape (B, h, L, L),
             }
         """
-        x = x.clone().detach()
-        x = rearrange(x, "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
+        
+        target_x = rearrange(x.clone().detach(), "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)
         
         # Feed the features to the encoder
@@ -119,17 +119,17 @@ class MaskedImageModelingModel(nn.Module):
         pred_x, pred_attns = self.predictor(enc_x, mask, return_all_patches=True) # (B, L, d), (B, h, L, L)
         
         # loss calculation
-        loss = self.calculate_loss(pred_x, x, mask, loss_on_all_patches)
+        loss = self.calculate_loss(pred_x, target_x, mask, loss_on_all_patches)
         
         # reshape the features
-        x = rearrange(x, "b (h w) (c p1 p2) -> b c (h p1) (w p2)", p1=self.patch_size, p2=self.patch_size, \
+        target_x = rearrange(target_x, "b (h w) (c p1 p2) -> b c (h p1) (w p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)
         pred_x = rearrange(pred_x, "b (h w) (c p1 p2) -> b c (h p1) (w p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)
         
         return {
             "loss": loss,
-            "targets": x,
+            "targets": target_x,
             "enc_attns": enc_attns,
             "preds": pred_x,
             "pred_attns": pred_attns,

@@ -2,6 +2,28 @@ from .mlp import SimpleMLPAdaLN
 from .unet import Unet
 from .dit import DiT
 from .vae import AutoencoderKL
+from .mim import mim_tiny, mim_small, mim_base, mim_large, mim_huge, mim_gigant, predictor_tiny, \
+    predictor_small, predictor_base, predictor_large, predictor_huge, predictor_gigant, PREDICTOR_SUPPORTEED_MODELS, MIM_SUPPORTEED_MODELS, MaskedImageModelingModel
+from . import mim
+
+def create_mim_model(model_type, **kwargs):
+    assert model_type in MIM_SUPPORTEED_MODELS, f"Model {model_type} not supported"
+    if 'tiny' in model_type:
+        return mim_tiny(**kwargs)
+    elif 'small' in model_type:
+        return mim_small(**kwargs)
+    elif 'base' in model_type:
+        return mim_base(**kwargs)
+    elif 'large' in model_type:
+        return mim_large(**kwargs)
+    elif 'huge' in model_type:
+        return mim_huge(**kwargs)
+    elif 'gigant' in model_type:
+        return mim_gigant(**kwargs)
+
+def create_predictor_model(model_type: str, **kwargs):
+    assert model_type in PREDICTOR_SUPPORTEED_MODELS, f"Model {model_type} not supported"
+    return getattr(mim, model_type)
 
 def create_vae(
     model_type: str,
