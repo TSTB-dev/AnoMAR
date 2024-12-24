@@ -7,3 +7,4 @@ tensorboard
 tensorboardX
 pyyaml
 timm
+scikit-learn

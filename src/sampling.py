@@ -69,17 +69,18 @@ def main(args):
     diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
-    model.load_state_dict(torch.load(args.model_ckpt, weights_only=True, map_location=device))
+    results = model.load_state_dict(torch.load(args.model_ckpt, weights_only=True, map_location=device), strict=False)
+    print(results)
     model.to(device)
     model.eval()
     
     for i in tqdm(range(args.num_samples)):
+        import pdb; pdb.set_trace()
         labels = torch.tensor([class_labels] * batch_size).to(device)
         labels = labels.to(device)
         
         with torch.no_grad():
             sample = model.sample(diff_in_sh, labels)  # (B, c, h, w)
-
             # decode
             images = vae.decode(sample / 0.2325)  # (B, C, H, W)
         

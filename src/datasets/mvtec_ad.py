@@ -89,12 +89,13 @@ class MVTecAD(Dataset):
         
         if self.anom_only:
             img_file = self.img_files[self.anom_indices[index]]
+            label = self.labels[self.anom_indices[index]]
         elif self.normal_only:
             img_file = self.img_files[self.normal_indices[index]]
+            label = self.labels[self.normal_indices[index]]
         else:
             img_file = self.img_files[index]
-        
-        img_file = self.img_files[index]
+            label = self.labels[index]
         
         cls_name = str(img_file).split("/")[-4]
         with open(img_file, 'rb') as f:
@@ -112,7 +113,7 @@ class MVTecAD(Dataset):
             return inputs
         else:
             inputs["samples"] = sample
-            inputs["labels"] = self.labels[index]
+            inputs["labels"] = label
             if "good" in str(img_file):
                 inputs["anom_type"] = "good"
             else:
