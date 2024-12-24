@@ -115,10 +115,10 @@ class PosEmbedding(nn.Module):
         self.pos_embedding = nn.Parameter(torch.randn(num_tokens, emb_size))  # (L, d)
     
     def forward(self, x: torch.Tensor, apply_indices=None) -> torch.Tensor:
-        B = x.shape[0]
+        B, _, C = x.shape
         if apply_indices is not None:
             pos_embed = self.pos_embedding.unsqueeze(0).repeat(B, 1, 1)  # (B, L, d)
-            x = x + torch.gather(pos_embed, 1, apply_indices.unsqueeze(-1).expand(-1, -1, self.emb_size))
+            x = x + torch.gather(pos_embed, 1, apply_indices.unsqueeze(-1).expand(-1, -1, C))
         else:
             x = x + self.pos_embedding
         return x

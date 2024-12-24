@@ -24,6 +24,21 @@ data:
   pin_memory: true
   train: true
   transform_type: default
+diffusion:
+  class_dropout_prob: 0.0
+  conditioning_scheme: cross_attention
+  depth: 8
+  grad_checkpoint: false
+  learn_sigma: false
+  mlp_ratio: 4
+  model_type: dit
+  num_classes: 15
+  num_heads: 8
+  num_sampling_steps: '100'
+  patch_size: 1
+  target_channels: 3
+  width: 768
+  z_channels: 768
 logging:
   log_interval: 10
   save_dir: ad_mim_base/bottle
@@ -34,9 +49,11 @@ meta:
   seed: 42
 mim:
   ckpt_path: null
+  diff_loss_weight: 1.0
   ema_decay: 0.999
   in_channels: 16
   in_resolution: 14
+  mim_loss_weight: 0
   model_type: mim_base
   patch_size: 1
 optimizer:

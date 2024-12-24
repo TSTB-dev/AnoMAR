@@ -8,8 +8,13 @@ import enum
 
 from typing import Tuple
 
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
 from diffusion import create_diffusion, SpacedDiffusion
 from models import create_denising_model
+from models.vision_transformer import PosEmbedding
 
 class Denoiser(nn.Module):
     def __init__(
@@ -23,6 +28,8 @@ class Denoiser(nn.Module):
         width: int, 
         num_sampling_steps : int, 
         grad_checkpoint=False, 
+        conditioning_scheme="none",
+        pos_embed: PosEmbedding=None,
         **kwargs
     ):
         super(Denoiser, self).__init__()
@@ -34,8 +41,10 @@ class Denoiser(nn.Module):
         self.depth = depth
         self.width = width
         self.num_sampling_steps = num_sampling_steps
+        self.pos_embed = pos_embed
+        self.conditioning_scheme = conditioning_scheme
         
-        self.clas_embed = nn.Embedding(num_classes, z_channels)
+        self.cls_embed = nn.Embedding(num_classes, z_channels)
         
         self.net = create_denising_model(
             model_type=model_type,
@@ -45,29 +54,36 @@ class Denoiser(nn.Module):
             out_channels=self.in_channels, # For vb, x 2
             z_channels=z_channels,
             num_blocks=depth,
-            grad_checkpoint=grad_checkpoint
+            grad_checkpoint=grad_checkpoint,
+            conditioning_scheme=conditioning_scheme,
+            pos_embed=pos_embed,
         )
         
         self.train_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing="", noise_schedule='linear', learn_sigma=False, rescale_learned_sigmas=False)
         self.sample_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing=num_sampling_steps, noise_schedule='linear')
         
-    def forward(self, target, cls_label, z=None):
+    def forward(self, target, cls_label, z=None, mask_indices=None):
         """Denoising step for training.
         Args:
-            target (Tensor): the target image to denoise (B, C, H, W)
+            target (Tensor): the target image to denoise (B, c, h, w) or (B, N, C)
+            cls_label (Tensor): the class label (B, )
             z (Tensor): the conditioning variable (B, Z)
+            mask_indices (Tensor): the mask indices (B, )
         Returns:
             Tensor: the loss
         """
+        if z is not None:
+            assert mask_indices is not None, "mask_indices must be specified if z is provided"
+            assert self.conditioning_scheme != "none", "conditioning_scheme must be specified if z is provided"
         
         # class embedding
-        z = self.clas_embed(cls_label)  # (B, Z)
+        cls_embed = self.cls_embed(cls_label)  # (B, Z)
 
         # sample timestep
         t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B, )
         
         # denoising
-        model_kwargs = dict(c=z)
+        model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
         loss_dict = self.train_diffusion.training_losses(self.net, target, t, model_kwargs)  
         loss = loss_dict['loss']
         return loss.mean()  # mean over the batch
@@ -83,7 +99,7 @@ class Denoiser(nn.Module):
         Returns:
             Tensor: the denoised image
         """
-        z = self.clas_embed(cls_label)  # (B, Z)
+        z = self.cls_embed(cls_label)  # (B, Z)
         
         if not cfg == 1.0:
             # do classifer free guidance
@@ -132,7 +148,7 @@ class Denoiser(nn.Module):
         """
         assert torch.where(t == t[0], 1, 0).sum() == t.shape[0], "All timesteps must be the same"
 
-        z = self.clas_embed(cls_label)  # (B, Z)
+        z = self.cls_embed(cls_label)  # (B, Z)
         if not cfg == 1.0:
             # do classifer free guidance
             model_kwargs = dict(c=z, cfg_scale=cfg)
@@ -154,8 +170,7 @@ class Denoiser(nn.Module):
             )
             x_t = out["sample"]
         return x_t
-
-        
+     
     
 def get_denoiser(**kwargs) -> Denoiser:
     return Denoiser(**kwargs)
