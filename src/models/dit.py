@@ -350,7 +350,6 @@ class DiT(nn.Module):
             pos_embed = get_2d_sincos_pos_embed(self.pos_embed.shape[-1], int(self.x_embedder.num_patches ** 0.5))
             self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
         else:
-            import pdb; pdb.set_trace()
             assert pos_embed.shape == (1, num_patches, hidden_size), "pos_embed shape must be (1, N, C)"
             self.pos_embed = nn.Parameter(pos_embed)
         
@@ -372,8 +371,6 @@ class DiT(nn.Module):
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
         self.apply(_basic_init)
-
-        # Initialize (and freeze) pos_embed by sin-cos embedding:
 
         # Initialize patch_embed like nn.Linear (instead of nn.Conv2d):
         w = self.x_embedder.proj.weight.data

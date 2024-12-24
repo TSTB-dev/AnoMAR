@@ -3,6 +3,7 @@ results/
 env/
 ad_dit_d8w768/
 weights/
+debug/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

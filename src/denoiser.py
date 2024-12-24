@@ -30,6 +30,11 @@ class Denoiser(nn.Module):
         grad_checkpoint=False, 
         conditioning_scheme="none",
         pos_embed: PosEmbedding=None,
+        patch_size: int,
+        num_heads: int = 8,
+        mlp_ratio: int = 4,
+        class_dropout_prob: float = 0.,
+        learn_sigma: bool = False,
         **kwargs
     ):
         super(Denoiser, self).__init__()
@@ -57,6 +62,12 @@ class Denoiser(nn.Module):
             grad_checkpoint=grad_checkpoint,
             conditioning_scheme=conditioning_scheme,
             pos_embed=pos_embed,
+            patch_size=patch_size,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            class_dropout_prob=class_dropout_prob,
+            num_classes=num_classes,
+            learn_sigma=learn_sigma,
         )
         
         self.train_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing="", noise_schedule='linear', learn_sigma=False, rescale_learned_sigmas=False)

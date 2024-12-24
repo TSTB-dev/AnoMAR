@@ -72,7 +72,7 @@ def create_denising_model(
     num_classes: int = 15,
     learn_sigma: bool = False,
     grad_checkpoint: bool = False, 
-    conditioning_scheme: str = "none",
+    conditioning_scheme: str = 'none',
     pos_embed = None,
 ):
     if model_type == "mlp":

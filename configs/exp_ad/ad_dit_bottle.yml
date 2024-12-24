@@ -8,6 +8,7 @@ diffusion:
   num_sampling_steps: '100'
   ema_decay: 0.999
   grad_checkpoint: false
+  patch_size: 2
 vae:
   model_type: 'vae_kl'
   embed_dim: 16
@@ -40,7 +41,7 @@ logging:
   log_interval: 10
   save_interval: 10
   save_images: false
-  save_dir: 'ad_dit_d8w768/bottle'
+  save_dir: 'debug/bottle'
 meta:
   seed: 42
   device: 'cuda'
