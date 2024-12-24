@@ -228,11 +228,12 @@ class DiTBlock(nn.Module):
     def forward(self, x, c, z=None):
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(6, dim=1)
         # each: (B, C)
+        N = x.shape[1]
         if z is not None:
-            assert z.shape[2] == x.shape[2], "Input and cross-attention tensors must have the same channel dimension."
+            assert z.shape[2] == x.shape[2], "Input and conditional tensors must have the same channel dimension."
             x = torch.cat([x, z], dim=1)  # (B, N + M, C)
-        
         x = x + gate_msa.unsqueeze(1) * self.attn(modulate(self.norm1(x), shift_msa, scale_msa))
+        x = x[:, :N]  # First N tokens are the original tokens
         x = x + gate_mlp.unsqueeze(1) * self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp))
         return x
 
@@ -435,30 +436,30 @@ class DiT(nn.Module):
             x = self.pos_embed(x, apply_indices=mask_indices) if self.inherit_pos_embed is None else self.inherit_pos_embed(x, apply_indices=mask_indices)
         else:
             raise ValueError(f"Invalid input shape: {x.shape}")
+
+        if z is not None:
+            z = self.z_embedder(z)  # (B, M, D)
         
         _, N, _ = x.shape
         t = self.t_embedder(t)  # (B, D)
 
         cond = t + c
         if self.conditioning_scheme == 'adaLN':
+            # TODO: implement aggregation module for z, current implementation is just average pooling
+            z = z.mean(dim=1)  # (B, D)
             assert z.shape[1] == t.shape[1], "conditioning tensor must have the same channel dimension with timeembedding"
             cond = cond + z
-        
-        if z is not None:
-            z = self.z_embedder(z)
+            z = None
         
         for block in self.blocks:
-            x = block(x, cond, z)  # (B, N, C)
-            
+            x = block(x, cond, z)  # (B, M, C)
+        
         x = self.final_layer(x, cond)  # (B, N, C)
-        if self.conditioning_scheme == 'self_attention':
-            x = x[:, :N]  # First N tokens are the original tokens, see DiTBlock. 
-            return x  # (B, M, C)
-        elif self.conditioning_scheme == 'cross_attention' or self.conditioning_scheme == 'adaLN':
-            return x  # (B, M, C)
-        else:
+        if self.conditioning_scheme == 'none':
             return self.unpatchify(x)  # (B, C, H, W)
-
+        else:
+            return x  # (B, N, C)
+        
     def forward_with_cfg(self, x, t, y, cfg_scale):
         """
         Forward pass of DiT, but also batches the unconditional forward pass for classifier-free guidance.

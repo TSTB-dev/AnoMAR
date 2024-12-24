@@ -2,7 +2,7 @@
 # cable   carpet   hazelnut  license.txt  mvtec_ad_evaluation  readme.txt  tile   transistor  zipper
 
 export CUDA_VISIBLE_DEVICES=0
-python3 ./src/train_mar.py --config_path ./configs/exp_mar/ad_mar_bottle.yml
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_adaln/ad_mar_bottle.yml
 
 # export CUDA_VISIBLE_DEVICES=1
 # python3 ./src/train.py --config_path ./configs/exp_ad/ad_dit_cable.yml &
