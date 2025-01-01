@@ -1,6 +1,7 @@
 
 
 from torchvision import transforms
+from torch.utils.data import DataLoader
 
 from .mnist import MNISTWrapper
 from .mvtec_ad import MVTecAD
@@ -37,4 +38,43 @@ def build_dataset(*, dataset_name: str, data_root: str, train: bool, img_size: i
     elif dataset_name == 'mvtec_ad':
         return MVTecAD(data_root=data_root, input_res=img_size, split='train' if train else 'test', \
             transform=build_transforms(img_size, transform_type), is_mask=True, cls_label=True, **kwargs)
+
+class EvalDataLoader:
+    def __init__(self, dataset, num_repeat, collate_fn, shared_masks=None):
+        self.dataset = dataset
+        self.num_repeat = num_repeat
+        self.collate_fn = collate_fn
+        # We repeat each sample in the dataset for the number of times it is required to be evaluated.
+        self.dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)  
+        self.iterator = iter(self.dataloader)
+        
+        self.shared_masks = shared_masks
     
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        data = next(self.iterator)  
+        
+        repeated_data = []
+        data["samples"] = data["samples"][0]  # (1, C, H, W) -> (C, H, W)
+        data["labels"] = data["labels"]
+        data["filenames"] = data["filenames"][0]
+        data["clsnames"] = data["clsnames"][0]
+        data["anom_type"] = data["anom_type"][0]
+        data["clslabels"] = data["clslabels"][0]
+        data["masks"] = data["masks"][0]  # gt masks
+        for _ in range(self.num_repeat):
+            repeated_data.append(data)
+
+        # use shared masks accross all test samples
+        collated_batch, collated_masks = self.collate_fn(repeated_data)
+        if self.shared_masks is None:
+            self.shared_masks = collated_masks
+        else:
+            collated_masks = self.shared_masks
+        
+        return collated_batch, collated_masks
+    
+    def __len__(self):
+        return len(self.dataloader)

@@ -117,13 +117,12 @@ class MaskedImageModelingModel(nn.Module):
                 "pred_attention_maps": torch.Tensor, shape (B, h, L, L),
             }
         """
-        
+        assert mask.dtype == torch.bool, "The mask tensor should be boolean."
         target_x = rearrange(x.clone().detach(), "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)
         
         # Feed the features to the encoder
         enc_x, enc_attns = self.encoder(x, mask)  # (B, V, d), (B, h, V, V)
-        M = mask.shape[1] - enc_x.shape[1]
         
         # Masked patch prediction
         pred_x, pred_attns = self.predictor(enc_x, mask, return_all_patches=True) # (B, L, d), (B, h, L, L)
@@ -233,7 +232,7 @@ class MaskedImageModelingModelWithDiffusion(nn.Module):
                 "pred_attention_maps": torch.Tensor, shape (B, h, L, L),
             }
         """
-        
+        assert mask.dtype == torch.bool, "The mask tensor should be boolean."
         target_x = rearrange(x.clone().detach(), "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)  
         
@@ -267,6 +266,35 @@ class MaskedImageModelingModelWithDiffusion(nn.Module):
             "pred_attns": pred_attns,
             "enc_features": enc_x,
         }
+    
+    def masked_forward(self, x, mask, loss_on_all_patches=False):
+        """Predict masked tokens"""
+        assert mask.dtype == torch.bool, "The mask tensor should be boolean."
+        target_x = rearrange(x.clone().detach(), "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
+            h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)  
+        
+        # Feed the features to the encoder
+        enc_x, enc_attns = self.encoder(x, mask)  # (B, V, d), (B, h, V, V)
+        M = mask.shape[1] - enc_x.shape[1]
+        
+        # Masked patch prediction
+        pred_x, pred_attns = self.predictor(enc_x, mask, return_all_patches=True) # (B, L, d), (B, h, L, L)
+        mim_loss = self.calculate_loss(pred_x, target_x, mask, loss_on_all_patches)
+        
+        mask_indices = mask_to_indices(mask) 
+        masked_target_x = torch.gather(target_x, 1, mask_indices.unsqueeze(-1).expand(-1, -1, target_x.shape[-1]))  # (B, M, c*p*p)
+        masked_pred_x = torch.gather(pred_x, 1, mask_indices.unsqueeze(-1).expand(-1, -1, pred_x.shape[-1]))  # (B, M, c*p*p)
+        assert masked_target_x.shape == masked_pred_x.shape, "The shape of the target and prediction should be the same."
+        return {
+            "mim_loss": mim_loss,
+            "targets": masked_target_x,  
+            "indices": mask_indices,
+            "enc_attns": enc_attns,
+            "preds": masked_pred_x,
+            "pred_attns": pred_attns,
+            "enc_features": enc_x,
+        }
+        
     
     @staticmethod
     def get_pos_embedding(num_patches, emb_size):

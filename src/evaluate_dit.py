@@ -22,13 +22,14 @@ from pprint import pprint
 from datasets import build_dataset
 from denoiser import get_denoiser, Denoiser
 from models import create_vae, AutoencoderKL
+from backbones import get_backbone
 
 def parser_args():
     parser = argparse.ArgumentParser(description='AnoMAR Sampling')
     
     parser.add_argument('--num_samples', type=int, help='Number of samples to generate', default=1)
     parser.add_argument('--num_inference_steps', type=int, help='Number of inference steps')
-    parser.add_argument('--recon_space', type=str, default='latent', help='Reconstruction space')
+    parser.add_argument('--recon_space', type=str, default='latent', help='Reconstruction space')  # ['latent', 'pixel', 'feature']
     parser.add_argument('--start_step', type=int, default=10, help='timestep to start denoising')
     parser.add_argument('--save_images', action='store_true', help='Save images')
     parser.add_argument('--output_dir', type=str, help='Output directory')
@@ -76,6 +77,7 @@ def main(args):
     device = args.device
     batch_size = args.batch_size
     num_samples = args.num_samples
+    category = config['data']['category']
 
     dataset_config = config['data']
     dataset_config['batch_size'] = batch_size
@@ -88,8 +90,6 @@ def main(args):
     normal_dataset = build_dataset(**dataset_config)
     anom_loader = DataLoader(anom_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
     normal_loader = DataLoader(normal_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
-    
-    num_classes = normal_dataset.num_classes
 
     vae: AutoencoderKL = create_vae(**config['vae'])
     vae.to(device).eval()
@@ -107,6 +107,12 @@ def main(args):
     model.to(device)
     model.eval()
     
+    if args.recon_space == 'feature':
+        backbone_name = 'efficientnet-b4'
+        print(f"Using feature space reconstruction with {backbone_name} backbone")
+        backbone = get_backbone(model_name=backbone_name)
+        backbone.to(device).eval()
+    
     # For visualization
     sample_indices = random.sample(range(min(len(anom_loader), len(normal_loader))), 2)
     sample_dict = {}
@@ -121,25 +127,27 @@ def main(args):
         # Prepare timesteps
         t = torch.tensor([args.start_step] * num_samples * len(images)).to(device)  # (B * K, )
         
-        def pertub(x, t):
+        def perturb(x, t):
             post = vae.encode(x)
             z = post.sample().mul_(0.2325)  # (B, c, h, w)
             z = z.repeat_interleave(num_samples, dim=0)  # (B*K, c, h, w)
+            x = x.repeat_interleave(num_samples, dim=0)  # (B*K, c, h, w)
             
             noised_z = model.q_sample(z, t)  # (B*K, c, h, w)
             noised_x = model.q_sample(x, t)  # (B*K, c, h, w)
             
             return noised_z, z, noised_x
         
-        noised_latents, org_latents, noised_x = pertub(images, t)  # (B*K, c, h, w)
+        noised_latents, org_latents, noised_x = perturb(images, t)  # (B*K, c, h, w)
         
         # decode
-        def denoising(noised_z, t):
+        def denoising(noised_z, t, labels):
+            labels = labels.repeat_interleave(num_samples, dim=0)
             denoized_z = model.denoise_from_intermediate(noised_z, t, labels)  
             x_rec = vae.decode(denoized_z / 0.2325)  # (B*K, C, H, W)
             return x_rec, denoized_z
         
-        x_rec, denoized_latents = denoising(noised_latents, t)
+        x_rec, denoized_latents = denoising(noised_latents, t, labels)
         
         # calculate scores
         def anomaly_score(x, x_rec):
@@ -158,6 +166,12 @@ def main(args):
         elif args.recon_space == 'pixel':
             anom_score, anom_map = anomaly_score(images.repeat_interleave(num_samples, dim=0), x_rec)
             normal_scores.append(anom_score)
+        elif args.recon_space == 'feature':
+            images = images.repeat_interleave(num_samples, dim=0)
+            images_feature = backbone(images)
+            x_rec_feature = backbone(x_rec)
+            anom_score, anom_map = anomaly_score(images_feature, x_rec_feature)
+            normal_scores.append(anom_score)
         else:
             raise ValueError("Invalid reconstruction space")        
 
@@ -170,31 +184,38 @@ def main(args):
                 "gt_masks": convert2image(masks)[0],  # (H, W)
                 "labels": "normal", 
             }
-            
+    
     normal_scores = torch.cat(normal_scores)
     
     # Evaluation on anomalous samples
     print("Evaluating on anomalous samples✖️")
     anom_scores = []
+    anom_types = []
     for i, batch in tqdm(enumerate(anom_loader), total=len(anom_loader)):
         
         images = batch["samples"].to(device)
         labels = batch["clslabels"].to(device)
         anom_type = batch["anom_type"]
-        ad_labels = batch["labels"]
+        anom_types += anom_type
         masks = batch["masks"]  # (B, 1, H, W)
         
         # Prepare timesteps
         t = torch.tensor([args.start_step] * num_samples * len(images)).to(device)  # (B * K, )
         
-        noised_latents, org_latents, noised_x = pertub(images, t)  # (B*K, c, h, w)
-        x_rec, denoized_latents = denoising(noised_latents, t)
+        noised_latents, org_latents, noised_x = perturb(images, t)  # (B*K, c, h, w)
+        x_rec, denoized_latents = denoising(noised_latents, t, labels)
         
         if args.recon_space == 'latent':
             anom_score, anom_map = anomaly_score(org_latents, denoized_latents)
             anom_scores.append(anom_score)
         elif args.recon_space == 'pixel':
             anom_score, anom_map = anomaly_score(images.repeat_interleave(num_samples, dim=0), x_rec)
+            anom_scores.append(anom_score)
+        elif args.recon_space == 'feature':
+            images = images.repeat_interleave(num_samples, dim=0)
+            images_feature = backbone(images)
+            x_rec_feature = backbone(x_rec)
+            anom_score, anom_map = anomaly_score(images_feature, x_rec_feature)
             anom_scores.append(anom_score)
         else:
             raise ValueError("Invalid reconstruction space")
@@ -208,26 +229,44 @@ def main(args):
                 "gt_masks": convert2image(masks)[0],
                 "labels": "anomalous"
             }
-            
     anom_scores = torch.cat(anom_scores)
     
     print("Calculating AUC...🧑‍⚕️")
-    
+    print(f"===========================================")
     y_true = torch.cat([torch.zeros_like(normal_scores), torch.ones_like(anom_scores)])
     y_score = torch.cat([normal_scores, anom_scores])
     auc = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
-    print(f"Image-level AUC 👓: {auc}")
+    print(f"Image-level AUC 👓: {auc:.4f} [{category}]")
+    print(f"===========================================")
     
-    # Save results as json
+    print(f"Calculating AUC for each anomaly type...🧑‍⚕️")
+    print(f"===========================================")
+    unique_anom_types = list(sorted(set(anom_types)))
+    auc_dict = {}
+    for anom_type in unique_anom_types:
+        y_true = torch.cat([torch.zeros_like(normal_scores), torch.ones_like(anom_scores[np.array(anom_types) == anom_type])])
+        y_score = torch.cat([normal_scores, anom_scores[np.array(anom_types) == anom_type]])
+        auc = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
+        auc_dict[anom_type] = auc
+        print(f"AUC [{anom_type}]: {auc:.4f}")
+    print(f"===========================================")
+    
+    print("Saving results...📁")
     results = {
         "normal_scores": normal_scores.cpu().numpy().tolist(),
         "anom_scores": anom_scores.cpu().numpy().tolist(),
-        "auc": auc
+        "auc": auc, 
+        "num_samples": num_samples,
+        "recon_space": args.recon_space,
+        "start_step": args.start_step,
+        "num_inference_steps": args.num_inference_steps,
     }
+    results.update(auc_dict)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    
     with open(output_dir / "eval_results.json", "w") as f:
-        json.dump(results, f)
+        json.dump(results, f, indent=4)
     print(f"Results saved at {output_dir / 'eval_results.json'}")
     
     if args.save_images:
@@ -242,30 +281,33 @@ def save_images(sample_dict, anom_scores, output_dir, num_samples):
     max_score = max(anom_scores)
     
     fig, ax = plt.subplots(4, 4 + min(num_samples, 3), figsize=(25, 10))
+    font_color = 'blue'
     for i, (key, value) in enumerate(sample_dict.items()):
+        if i == 2:
+            font_color = 'orange'
         ax[i, 0].imshow(value['images'])
-        ax[i, 0].set_title(f"Original {value['labels']}")
+        ax[i, 0].set_title(f"Original {value['labels']}", color=font_color)
         ax[i, 0].axis('off')
         
         ax[i, 1].imshow(value['noised_images'])
-        ax[i, 1].set_title(f"Noised {value['labels']}")
+        ax[i, 1].set_title(f"Noised {value['labels']}", color=font_color)
         ax[i, 1].axis('off')
         
         ax[i, 2].imshow(value['reconstructed_images'][0])
-        ax[i, 2].set_title(f"Reconstructed {1}")
+        ax[i, 2].set_title(f"Reconstructed {1}", color=font_color)
         ax[i, 2].axis('off')
         
         for j in range(1, min(num_samples, 3)):
             ax[i, 2 + j].imshow(value['reconstructed_images'][j])
-            ax[i, 2 + j].set_title(f"Reconstructed {j + 1}")
+            ax[i, 2 + j].set_title(f"Reconstructed {j + 1}", color=font_color)
             ax[i, 2 + j].axis('off')
         
         ax[i, 2 + min(num_samples, 3)].imshow(value['anomaly_maps'], vmin=min_score, vmax=max_score)
-        ax[i, 2 + min(num_samples, 3)].set_title(f"Anomaly Map {value['labels']}")
+        ax[i, 2 + min(num_samples, 3)].set_title(f"Anomaly Map {value['labels']}", color=font_color)
         ax[i, 2 + min(num_samples, 3)].axis('off')
         
         ax[i, 3 + min(num_samples, 3)].imshow(value['gt_masks'], cmap='gray', vmin=0, vmax=1)
-        ax[i, 3 + min(num_samples, 3)].set_title(f"GT Mask {value['labels']}")
+        ax[i, 3 + min(num_samples, 3)].set_title(f"GT Mask {value['labels']}", color=font_color)
         ax[i, 3 + min(num_samples, 3)].axis('off')
             
     plt.tight_layout()

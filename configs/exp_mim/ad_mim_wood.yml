@@ -6,7 +6,7 @@ backbone:
   ckpt_path: './weights/vae/kl16.ckpt'
 data:
   dataset_name: 'mvtec_ad'
-  category: 'metal_nut'
+  category: 'wood'
   data_root: 'data/mvtec_ad'
   num_normal_samples: -1
   multi_category: false
@@ -40,7 +40,7 @@ logging:
   log_interval: 10
   save_interval: 10
   save_images: false
-  save_dir: 'results/ad_mim_base_long/metal_nut'
+  save_dir: 'results/ad_mim_base_long/wood'
 meta:
   seed: 42
   device: 'cuda'

@@ -147,25 +147,27 @@ class Denoiser(nn.Module):
         """
         return self.sample_diffusion.q_sample(x_start, t, noise=noise)
     
-    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor, cfg=1.0) -> Tensor:
+    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor, z = None, mask_indices=None, cfg=1.0) -> Tensor:
         """Denoise from intermediate state x_t to x_0
         Args:
             x_t (Tensor): the intermediate diffusion latent variables (B, c, h, w)
             t (Tensor): the timestep (B, )
             cls_label (Tensor): the class label (B, )
+            z (Tensor): the conditioning variable (B, Z)
+            mask_indices (Tensor): the mask indices (B, M)
             cfg (float): the cfg scale
         Returns:
             Tensor: the denoised image (B, c, h, w)
         """
         assert torch.where(t == t[0], 1, 0).sum() == t.shape[0], "All timesteps must be the same"
 
-        z = self.cls_embed(cls_label)  # (B, Z)
+        cls_embed = self.cls_embed(cls_label)  # (B, Z)
         if not cfg == 1.0:
             # do classifer free guidance
-            model_kwargs = dict(c=z, cfg_scale=cfg)
+            model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward_with_cfg
         else:
-            model_kwargs = dict(c=z)
+            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward
             
         indices = list(range(t[0].item()))[::-1]

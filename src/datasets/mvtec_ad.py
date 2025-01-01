@@ -64,6 +64,7 @@ class MVTecAD(Dataset):
         
         # # load files from the dataset
         self.img_files = self.get_files()
+        self.labels = [0] * len(self.img_files)
         if self.split == 'test':
             self.mask_transform = transforms.Compose(
                 [

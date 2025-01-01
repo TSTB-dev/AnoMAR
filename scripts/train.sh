@@ -1,8 +1,38 @@
 # bottle  capsule  grid      leather      metal_nut            pill        screw  toothbrush  wood
 # cable   carpet   hazelnut  license.txt  mvtec_ad_evaluation  readme.txt  tile   transistor  zipper
 
+
+
 export CUDA_VISIBLE_DEVICES=0
-python3 ./src/train_dit.py --config_path ./configs/exp_ad/ad_dit_bottle.yml
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_ca/ad_mar_transistor.yml &
+
+export CUDA_VISIBLE_DEVICES=1
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_ca/ad_mar_zipper.yml &
+
+export CUDA_VISIBLE_DEVICES=2
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_ca/ad_mar_wood.yml &
+
+export CUDA_VISIBLE_DEVICES=3
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_sa/ad_mar_transistor.yml &
+
+export CUDA_VISIBLE_DEVICES=4
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_sa/ad_mar_zipper.yml &
+
+export CUDA_VISIBLE_DEVICES=5
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_sa/ad_mar_wood.yml &
+
+
+wait 
+
+export CUDA_VISIBLE_DEVICES=3
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_adaln/ad_mar_transistor.yml &
+
+export CUDA_VISIBLE_DEVICES=4
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_adaln/ad_mar_zipper.yml &
+
+export CUDA_VISIBLE_DEVICES=5
+python3 ./src/train_mar.py --config_path ./configs/exp_mar_adaln/ad_mar_wood.yml &
+
 
 # export CUDA_VISIBLE_DEVICES=1
 # python3 ./src/train.py --config_path ./configs/exp_ad/ad_dit_cable.yml &

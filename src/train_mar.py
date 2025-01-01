@@ -130,7 +130,7 @@ def main(args):
             img = img.to(device)
             labels = labels.to(device)
             
-            mask, _ = indices_to_mask(mask_indices.to(device), model.num_patches)
+            mask = indices_to_mask(mask_indices.to(device), model.num_patches)
             
             # forward
             with torch.no_grad():

@@ -48,8 +48,9 @@ class RandomMaskCollator(object):
         
         collated_masks = []
         for _ in range(B):
-            m = torch.randperm(num_patches)
-            collated_masks.append(m[num_keep:])
+            m = torch.randperm(num_patches)[num_keep:]
+            m = m.sort().values
+            collated_masks.append(m)
         collated_masks = torch.stack(collated_masks, dim=0)  # (B, M), M: num of masked patches
         return collated_batch_org, collated_masks
 
@@ -158,6 +159,7 @@ class BlockRandomMaskCollator(object):
             scale = torch.empty(1).uniform_(self.scale_min, self.scale_max, generator=g)
             mask = self.generate_block_mask(aspect_ratio, scale)
             mask = self.restrict_mask_ratio(mask, num_remove, num_patches)
+            mask = mask.sort().values
             collated_masks.append(mask)
         collated_masks = torch.stack(collated_masks, dim=0)
         return collated_batch_org, collated_masks
@@ -259,8 +261,10 @@ class CheckerBoardMaskCollator(object):
             divisor = 2 ** torch.randint(self.min_divisor, self.max_divisor, (1,)).item() 
             mask, inv_mask = self.generate_checkerboard_mask(divisor)
             if torch.rand(1) > 0.5:
+                mask = mask.sort().values
                 collated_masks.append(mask)
             else:
+                inv_mask = inv_mask.sort().values
                 collated_masks.append(inv_mask)
         collated_masks = torch.stack(collated_masks, dim=0)
         return collated_batch_org, collated_masks
