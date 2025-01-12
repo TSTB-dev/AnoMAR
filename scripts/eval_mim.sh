@@ -1,13 +1,12 @@
-# # bottle  cable  capsule  carpet  grid  hazelnut  leather  metal_nut  pill  screw  tile  toothbrush  transistor  wood  zipper
+# # # bottle  cable  capsule  carpet  grid  hazelnut  leather  metal_nut  pill  screw  tile  toothbrush  transistor  wood  zipper
 
 export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --save_images \
-    --output_dir ./results/ad_mim_base_long/bottle \
-    --model_ckpt ./results/ad_mim_base_long/bottle/model_latest.pth \
-    --config_path ./results/ad_mim_base_long/bottle/config.yaml \
+    --output_dir ./results/loco_mim_base_enet/breakfast_box \
+    --model_ckpt ./results/loco_mim_base_enet/breakfast_box/model_latest.pth \
+    --config_path ./results/loco_mim_base_enet/breakfast_box/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -15,10 +14,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --save_images \
-    --output_dir ./results/ad_mim_base_long/cable \
-    --model_ckpt ./results/ad_mim_base_long/cable/model_latest.pth \
-    --config_path ./results/ad_mim_base_long/cable/config.yaml \
+    --output_dir ./results/loco_mim_base_enet/juice_bottle \
+    --model_ckpt ./results/loco_mim_base_enet/juice_bottle/model_latest.pth \
+    --config_path ./results/loco_mim_base_enet/juice_bottle/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -26,10 +24,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --save_images \
-    --output_dir ./results/ad_mim_base_long/capsule \
-    --model_ckpt ./results/ad_mim_base_long/capsule/model_latest.pth \
-    --config_path ./results/ad_mim_base_long/capsule/config.yaml \
+    --output_dir ./results/loco_mim_base_enet/pushpins \
+    --model_ckpt ./results/loco_mim_base_enet/pushpins/model_latest.pth \
+    --config_path ./results/loco_mim_base_enet/pushpins/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -37,174 +34,168 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --save_images \
-    --output_dir ./results/ad_mim_base_long/carpet \
-    --model_ckpt ./results/ad_mim_base_long/carpet/model_latest.pth \
-    --config_path ./results/ad_mim_base_long/carpet/config.yaml \
+    --output_dir ./results/loco_mim_base_enet/screw_bag \
+    --model_ckpt ./results/loco_mim_base_enet/screw_bag/model_latest.pth \
+    --config_path ./results/loco_mim_base_enet/screw_bag/config.yaml \
+    --device cuda \
+    --batch_size 1
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_mim.py \
+   --num_masks 4 \
+    --recon_space latent \
+    --output_dir ./results/loco_mim_base_enet/splicing_connectors \
+    --model_ckpt ./results/loco_mim_base_enet/splicing_connectors/model_latest.pth \
+    --config_path ./results/loco_mim_base_enet/splicing_connectors/config.yaml \
     --device cuda \
     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/bottle \
-#     --model_ckpt ./results/ad_mim_base/bottle/model_latest.pth \
-#     --config_path ./results/ad_mim_base/bottle/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/bottle \
+#     --model_ckpt ./results/ad_mim_base_enet/bottle/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/bottle/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/cable \
-#     --model_ckpt ./results/ad_mim_base/cable/model_latest.pth \
-#     --config_path ./results/ad_mim_base/cable/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/cable \
+#     --model_ckpt ./results/ad_mim_base_enet/cable/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/cable/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/capsule \
-#     --model_ckpt ./results/ad_mim_base/capsule/model_latest.pth \
-#     --config_path ./results/ad_mim_base/capsule/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/capsule \
+#     --model_ckpt ./results/ad_mim_base_enet/capsule/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/capsule/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/carpet \
-#     --model_ckpt ./results/ad_mim_base/carpet/model_latest.pth \
-#     --config_path ./results/ad_mim_base/carpet/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/carpet \
+#     --model_ckpt ./results/ad_mim_base_enet/carpet/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/carpet/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/grid \
-#     --model_ckpt ./results/ad_mim_base/grid/model_latest.pth \
-#     --config_path ./results/ad_mim_base/grid/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/grid \
+#     --model_ckpt ./results/ad_mim_base_enet/grid/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/grid/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/hazelnut \
-#     --model_ckpt ./results/ad_mim_base/hazelnut/model_latest.pth \
-#     --config_path ./results/ad_mim_base/hazelnut/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/hazelnut \
+#     --model_ckpt ./results/ad_mim_base_enet/hazelnut/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/hazelnut/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/leather \
-#     --model_ckpt ./results/ad_mim_base/leather/model_latest.pth \
-#     --config_path ./results/ad_mim_base/leather/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/leather \
+#     --model_ckpt ./results/ad_mim_base_enet/leather/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/leather/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/metal_nut \
-#     --model_ckpt ./results/ad_mim_base/metal_nut/model_latest.pth \
-#     --config_path ./results/ad_mim_base/metal_nut/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/metal_nut \
+#     --model_ckpt ./results/ad_mim_base_enet/metal_nut/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/metal_nut/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/pill \
-#     --model_ckpt ./results/ad_mim_base/pill/model_latest.pth \
-#     --config_path ./results/ad_mim_base/pill/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/pill \
+#     --model_ckpt ./results/ad_mim_base_enet/pill/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/pill/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/screw \
-#     --model_ckpt ./results/ad_mim_base/screw/model_latest.pth \
-#     --config_path ./results/ad_mim_base/screw/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/screw \
+#     --model_ckpt ./results/ad_mim_base_enet/screw/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/screw/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/tile \
-#     --model_ckpt ./results/ad_mim_base/tile/model_latest.pth \
-#     --config_path ./results/ad_mim_base/tile/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/tile \
+#     --model_ckpt ./results/ad_mim_base_enet/tile/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/tile/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/toothbrush \
-#     --model_ckpt ./results/ad_mim_base/toothbrush/model_latest.pth \
-#     --config_path ./results/ad_mim_base/toothbrush/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/toothbrush \
+#     --model_ckpt ./results/ad_mim_base_enet/toothbrush/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/toothbrush/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/transistor \
-#     --model_ckpt ./results/ad_mim_base/transistor/model_latest.pth \
-#     --config_path ./results/ad_mim_base/transistor/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/transistor \
+#     --model_ckpt ./results/ad_mim_base_enet/transistor/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/transistor/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/wood \
-#     --model_ckpt ./results/ad_mim_base/wood/model_latest.pth \
-#     --config_path ./results/ad_mim_base/wood/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/wood \
+#     --model_ckpt ./results/ad_mim_base_enet/wood/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/wood/config.yaml \
 #     --device cuda \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mim.py \
-#    --num_masks 32 \
+#    --num_masks 4 \
 #     --recon_space latent \
-#     --save_images \
-#     --output_dir ./results/ad_mim_base/zipper \
-#     --model_ckpt ./results/ad_mim_base/zipper/model_latest.pth \
-#     --config_path ./results/ad_mim_base/zipper/config.yaml \
+#     --output_dir ./results/ad_mim_base_enet/zipper \
+#     --model_ckpt ./results/ad_mim_base_enet/zipper/model_ema_latest.pth \
+#     --config_path ./results/ad_mim_base_enet/zipper/config.yaml \
 #     --device cuda \
 #     --batch_size 1

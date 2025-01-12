@@ -90,7 +90,7 @@ def main(args):
     if 'vae' in config['backbone']['model_type']:
         backbone: AutoencoderKL = create_vae(**config['backbone'])
     else:
-        backbone = get_backbone(config['backbone']['model_type'], **config['backbone'])
+        backbone = get_backbone(**config['backbone'])
     backbone.to(device).eval()
     
     backbone_embed_dim = config['backbone']['embed_dim']
@@ -183,7 +183,6 @@ def main(args):
 
         mask = reshape_mask(mask).unsqueeze(1)  # (B, 1, h, w)
         pred_features = pred_features * mask + target_features * (1 - mask)
-        pred_images = decode_images(pred_features)
         
         def anomaly_score(x, y, m):
             anom_map = m.squeeze(1) * torch.mean((x - y)**2, dim=1)  # (B, h, w)
@@ -202,6 +201,7 @@ def main(args):
             raise ValueError(f"Invalid reconstruction space: {args.recon_space}")
         
         if i in sample_indices:
+            pred_images = decode_images(pred_features)
             org_imgs = convert2image(postprocess(images))  # (B, H, W, C)
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
             masked_imgs = convert2image(postprocess(images) * (1 - mask))  # (B, H, W, C)
@@ -244,7 +244,6 @@ def main(args):
 
         mask = reshape_mask(mask).unsqueeze(1)  # (B, 1, h, w)
         pred_features = pred_features * mask + target_features * (1 - mask)
-        pred_images = decode_images(pred_features)
         
         if args.recon_space == 'latent':
             anom_score, anom_map = anomaly_score(target_features, pred_features, mask)
@@ -257,6 +256,7 @@ def main(args):
             raise ValueError(f"Invalid reconstruction space: {args.recon_space}")
         
         if i in sample_indices:
+            pred_images = decode_images(pred_features)
             org_imgs = convert2image(postprocess(images))  # (B, H, W, C)
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
             masked_imgs = convert2image(postprocess(images) * (1 - mask))  # (B, H, W, C)

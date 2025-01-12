@@ -17,7 +17,7 @@ from pprint import pprint
 from datasets import build_dataset
 from utils import get_optimizer, get_lr_scheduler
 from models import create_vae, AutoencoderKL, create_mim_model, MaskedImageModelingModel
-from backbones import get_efficientnet, get_pdn_medium, get_pdn_small
+from backbones import get_backbone
 from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
 
 def parse_args():
@@ -57,14 +57,8 @@ def main(args):
     # build backbone model
     if 'vae' in config['backbone']['model_type']:
         backbone: AutoencoderKL = create_vae(**config['backbone'])
-    elif 'efficient' in config['backbone']['model_type']:
-        backbone = get_efficientnet(config['backbone']['model_type'], **config['backbone'])
-    elif 'pdn_small' in config['backbone']['model_type']:
-        backbone = get_pdn_small(config['backbone']['model_type'], **config['backbone'])
-    elif 'pdn_medium' in config['backbone']['model_type']:
-        backbone = get_pdn_medium(config['backbone']['model_type'], **config['backbone'])
     else:
-        raise ValueError(f"Unknown backbone model: {config['backbone']['model_type']}")
+        backbone = get_backbone(**config['backbone'])
     backbone.to(device).eval()
     
     for param in backbone.parameters():

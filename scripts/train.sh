@@ -1,8 +1,6 @@
 # bottle  capsule  grid      leather      metal_nut            pill        screw  toothbrush  wood
 # cable   carpet   hazelnut  license.txt  mvtec_ad_evaluation  readme.txt  tile   transistor  zipper
 
-
-
 export CUDA_VISIBLE_DEVICES=0
 python3 ./src/train_mar.py --config_path ./configs/exp_mar_ca/ad_mar_transistor.yml &
 

@@ -49,13 +49,15 @@ def get_pdn_medium(out_channels=384, padding=False):
                   kernel_size=1)
     )
     
-def get_backbone(model_name, **kwargs):
+def get_backbone(**kwargs):
+    model_name = kwargs['model_type']
     if 'pdn_small' in model_name:
         return get_pdn_small(**kwargs)
     elif 'pdn_medium' in model_name:
         return get_pdn_medium(**kwargs)
     elif 'efficientnet' in model_name:
-        net =  get_efficientnet(model_name, pretrained=True, outblocks=[1, 5, 9, 21], outstrides=[2, 4, 8, 16])
+        # net = get_efficientnet(model_name, pretrained=True, outblocks=[1, 5, 9, 21], outstrides=[2, 4, 8, 16])
+        net =  get_efficientnet(model_name, **kwargs)
         return BackboneWrapper(net, [0.125, 0.25, 0.5, 1.0])
     else:
         raise ValueError(f"Invalid backbone model: {model_name}")

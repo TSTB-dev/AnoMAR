@@ -27,6 +27,7 @@ class Denoiser(nn.Module):
         depth: int, 
         width: int, 
         num_sampling_steps : int, 
+        num_repeat: int = 1,
         grad_checkpoint=False, 
         conditioning_scheme="none",
         pos_embed: PosEmbedding=None,
@@ -48,6 +49,7 @@ class Denoiser(nn.Module):
         self.num_sampling_steps = num_sampling_steps
         self.pos_embed = pos_embed
         self.conditioning_scheme = conditioning_scheme
+        self.num_repeat = num_repeat
         
         self.cls_embed = nn.Embedding(num_classes, z_channels)
         
@@ -86,12 +88,20 @@ class Denoiser(nn.Module):
         if z is not None:
             assert mask_indices is not None, "mask_indices must be specified if z is provided"
             assert self.conditioning_scheme != "none", "conditioning_scheme must be specified if z is provided"
+            z = torch.repeat_interleave(z, self.num_repeat, dim=0)  # (B*N, ...)
+            
+        # repeat target and mask_indices
+        target = torch.repeat_interleave(target, self.num_repeat, dim=0)  # (B*N, C, H, W)
+        if mask_indices is not None:
+            mask_indices = torch.repeat_interleave(mask_indices, self.num_repeat, dim=0)  # (B*N, M)
         
         # class embedding
         cls_embed = self.cls_embed(cls_label)  # (B, Z)
+        cls_embed = torch.repeat_interleave(cls_embed, self.num_repeat, dim=0)  # (B*N, Z)
+        
 
         # sample timestep
-        t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B, )
+        t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B*N, )
         
         # denoising
         model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
@@ -147,7 +157,8 @@ class Denoiser(nn.Module):
         """
         return self.sample_diffusion.q_sample(x_start, t, noise=noise)
     
-    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor, z = None, mask_indices=None, cfg=1.0) -> Tensor:
+    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor, z = None, mask_indices=None, cfg=1.0, \
+        sampler: str="org", eta: float = 0.0, temperature: float = 1.0) -> Tensor:
         """Denoise from intermediate state x_t to x_0
         Args:
             x_t (Tensor): the intermediate diffusion latent variables (B, c, h, w)
@@ -156,6 +167,9 @@ class Denoiser(nn.Module):
             z (Tensor): the conditioning variable (B, Z)
             mask_indices (Tensor): the mask indices (B, M)
             cfg (float): the cfg scale
+            sampler (str): the sampler type, "org", "ddim"
+            eta (float): the eta value for ddim sampling
+            temperature (float): the temperature for sampling
         Returns:
             Tensor: the denoised image (B, c, h, w)
         """
@@ -173,15 +187,28 @@ class Denoiser(nn.Module):
         indices = list(range(t[0].item()))[::-1]
         for i in indices:
             t = torch.tensor([i] * x_t.shape[0]).to(x_t.device)  # (B, )
-            out = self.sample_diffusion.p_sample(
-                sample_fn,
-                x_t,
-                t,
-                clip_denoised=False,
-                model_kwargs=model_kwargs,
-                temperature=1.0,
-            )
-            x_t = out["sample"]
+            if sampler == "org":
+                out = self.sample_diffusion.p_sample(
+                    sample_fn,
+                    x_t,
+                    t,
+                    clip_denoised=False,
+                    model_kwargs=model_kwargs,
+                    temperature=temperature,
+                )
+                x_t = out["sample"]
+            elif sampler == "ddim":
+                out = self.sample_diffusion.p_sample_ddim(
+                    sample_fn,
+                    x_t,
+                    t,
+                    clip_denoised=False,
+                    model_kwargs=model_kwargs,
+                    eta=eta,
+                )
+                x_t = out["sample"]
+            else:
+                raise ValueError(f"Invalid sampler type: {sampler}")
         return x_t
      
     

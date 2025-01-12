@@ -177,7 +177,8 @@ class CrossAttention(nn.Module):
         self.head_dim = dim // num_heads
         self.scale = self.head_dim ** -0.5
         
-        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.q = nn.Linear(dim, dim, bias=qkv_bias)
+        self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
         self.q_norm = norm_layer(dim) if qk_norm else nn.Identity()
         self.k_norm = norm_layer(dim) if qk_norm else nn.Identity()
         self.attn_drop = nn.Dropout(attn_drop)
@@ -193,8 +194,9 @@ class CrossAttention(nn.Module):
             Tensor: output tensor (B, N, C)
         """
         B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)  # (3, B, num_heads, N, head_dim)
-        q, k, v = qkv[0], self.k_norm(qkv[1]), self.q_norm(qkv[2])  # q, k, v: (B, num_heads, N, head_dim)
+        q = self.q(x).reshape(B, N, self.num_heads, self.head_dim).permute(0, 2, 1, 3)  # (B, num_heads, N, head_dim)
+        kv = self.kv(y).reshape(B, y.shape[1], 2, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)  # (2, B, num_heads, M, head_dim)
+        q, k, v = self.q_norm(q), self.k_norm(kv[0]), kv[1]  
         q = q * self.scale
         attn = (q @ k.transpose(-2, -1))  # (B, num_heads, N, M)
         attn = attn.softmax(dim=-1)

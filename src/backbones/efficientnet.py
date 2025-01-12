@@ -517,7 +517,7 @@ class EfficientNet(nn.Module):
                 in_channels, out_channels, kernel_size=3, stride=2, bias=False
             )
             
-def build_efficient(model_name, pretrained, outblocks, outstrides, pretrained_model=""):
+def build_efficient(model_name, pretrained, outblocks, outstrides, pretrained_model="", **kwargs):
     if pretrained:
         model = EfficientNet.from_pretrained(
             model_name,

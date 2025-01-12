@@ -34,6 +34,9 @@ def parser_args():
     parser.add_argument('--num_samples', type=int, help='Number of samples to generate', default=1)
     parser.add_argument('--num_inference_steps', type=int, help='Number of inference steps')
     parser.add_argument('--start_step', type=int, default=10, help='timestep to start denoising')
+    parser.add_argument('--sampler', type=str, help='Sampler to use', default='org')  # ddim or org
+    parser.add_argument('--temperature', type=float, help='Temperature for sampling', default=1.0)
+    parser.add_argument('--eta', type=float, help='Eta for sampling', default=1.0)
     parser.add_argument('--num_masks', type=int, help='Number of masks to generate', default=1)
     parser.add_argument('--recon_space', type=str, default='latent', help='Reconstruction space')  # ['latent', 'pixel', 'feature']
     parser.add_argument('--save_images', action='store_true', help='Save images')
@@ -42,6 +45,7 @@ def parser_args():
     parser.add_argument('--config_path', type=str, help='Path to the config file')
     parser.add_argument('--device', type=str, default='cuda', help='Device to use')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
+    parser.add_argument('--sample_indices', type=int, nargs='+', help='Sample indices to visualize', default=[])
     
     return parser.parse_args()
 
@@ -96,7 +100,7 @@ def main(args):
     if 'vae' in config['backbone']['model_type']:
         backbone: AutoencoderKL = create_vae(**config['backbone'])
     else:
-        backbone = get_backbone(config['backbone']['model_type'], **config['backbone'])
+        backbone = get_backbone(**config['backbone'])
     backbone.to(device).eval()
     
     backbone_embed_dim = config['backbone']['embed_dim']
@@ -142,7 +146,7 @@ def main(args):
 
     # For visualization
     if args.save_images:    
-        sample_indices = random.sample(range(min(len(anom_dataset), len(normal_dataset))), 2)
+        sample_indices = random.sample(range(min(len(anom_dataset), len(normal_dataset))), 2) if not args.sample_indices else args.sample_indices
         sample_dict = {}
     else:
         sample_indices = []
@@ -216,7 +220,6 @@ def main(args):
         pred_latents = latents.clone()
         pred_latents[torch.arange(len(pred_latents)).unsqueeze(1), mask_indices] = preds  # (B*K, N, c)
         pred_latents_map = rearrange(pred_latents, 'b (h w) c -> b c h w', h=mim_in_sh[1], w=mim_in_sh[2])  # (B*K, c, h, w)
-        pred_imgs = decode_images(pred_latents_map)  # (B*K, 3, H, W)
         
         def anomaly_score(x, y):
             anom_map = torch.mean((x - y)**2, dim=-1)  # (B*K, M)
@@ -245,7 +248,7 @@ def main(args):
             raise ValueError(f"Invalid reconstruction space: {args.recon_space}")
         
         if i in sample_indices:
-            
+            pred_imgs = decode_images(pred_latents_map)  # (B*K, 3, H, W)
             mask = reshape_mask(mask).unsqueeze(1)  # (B, H, W)
             org_imgs = convert2image(postprocess(images))  # (B, H, W, C)
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
@@ -301,7 +304,6 @@ def main(args):
         pred_latents = latents.clone()
         pred_latents[torch.arange(len(pred_latents)).unsqueeze(1), mask_indices] = preds  # (B*K, N, c)
         pred_latents_map = rearrange(pred_latents, 'b (h w) c -> b c h w', h=mim_in_sh[1], w=mim_in_sh[2])  # (B*K, c, h, w)
-        pred_imgs = decode_images(pred_latents_map)  # (B*K, 3, H, W)
         
         if args.recon_space == 'latent':
             anom_score = anomaly_score(preds, org_targets)
@@ -314,6 +316,7 @@ def main(args):
             raise ValueError(f"Invalid reconstruction space: {args.recon_space}")
         
         if i in sample_indices:
+            pred_imgs = decode_images(pred_latents_map)  # (B*K, 3, H, W)
             mask = reshape_mask(mask).unsqueeze(1)  # (B, H, W)
             org_imgs = convert2image(postprocess(images))  # (B, H, W, C)
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
@@ -338,8 +341,8 @@ def main(args):
     print(f"===========================================")
     y_true = torch.cat([torch.zeros_like(normal_scores), torch.ones_like(anom_scores)])
     y_score = torch.cat([normal_scores, anom_scores])
-    auc = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
-    print(f"Image-level AUC 👓: {auc:.4f} [{category}]")
+    auc_all = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
+    print(f"Image-level AUC 👓: {auc_all:.4f} [{category}]")
     print(f"===========================================")
     
     print(f"Calculating AUC for each anomaly type...🧑‍⚕️")
@@ -358,7 +361,7 @@ def main(args):
     results = {
         "normal_scores": normal_scores.cpu().numpy().tolist(),
         "anom_scores": anom_scores.cpu().numpy().tolist(),
-        "auc": auc, 
+        "auc": auc_all, 
         "num_masks": args.num_masks,
         "recon_space": args.recon_space,
         "mask_coverage": mask_coverage_meter.avg,

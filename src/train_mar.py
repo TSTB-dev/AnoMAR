@@ -18,7 +18,7 @@ from datasets import build_dataset
 from utils import get_optimizer, get_lr_scheduler
 from models import create_vae, AutoencoderKL, create_mar_model, MaskedImageModelingModelWithDiffusion
 from denoiser import get_denoiser, Denoiser
-from backbones import get_efficientnet, get_pdn_medium, get_pdn_small
+from backbones import get_backbone
 from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
 
 def parse_args():
@@ -58,14 +58,8 @@ def main(args):
     # build backbone model
     if 'vae' in config['backbone']['model_type']:
         backbone: AutoencoderKL = create_vae(**config['backbone'])
-    elif 'efficient' in config['backbone']['model_type']:
-        backbone = get_efficientnet(config['backbone']['model_type'], **config['backbone'])
-    elif 'pdn_small' in config['backbone']['model_type']:
-        backbone = get_pdn_small(config['backbone']['model_type'], **config['backbone'])
-    elif 'pdn_medium' in config['backbone']['model_type']:
-        backbone = get_pdn_medium(config['backbone']['model_type'], **config['backbone'])
     else:
-        raise ValueError(f"Unknown backbone model: {config['backbone']['model_type']}")
+        backbone = get_backbone(**config['backbone'])
     backbone.to(device).eval()
     
     for param in backbone.parameters():
@@ -149,13 +143,19 @@ def main(args):
             loss.backward()
             optimizer.step()
             
+            if torch.isnan(loss):
+                print("Loss is NaN")
+                exit()
+            
             # update ema
             for ema_param, model_param in zip(model_ema.parameters(), model.parameters()):
                 ema_param.data.mul_(ema_decay).add_(model_param.data, alpha=1.0 - ema_decay)
             
             if i % config["logging"]["log_interval"] == 0:
-                print(f"Epoch {epoch}, Iter {i}, Loss {loss.item()}")      
+                print(f"Epoch {epoch}, Iter {i}, Loss {loss.item():.5f}, MIM Loss {mim_loss.item():.5f}, Diffusion Loss {diff_loss.item():.5f}")      
                 tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader) + i)  
+                tb_writer.add_scalar("MIM Loss", mim_loss.item(), epoch * len(train_loader) + i)
+                tb_writer.add_scalar("Diffusion Loss", diff_loss.item(), epoch * len(train_loader) + i)
                 
                 if config["logging"]["save_images"]:
                     pass
