@@ -1,4 +1,4 @@
-from .mask_collator import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator
+from .mask_collator import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator
 import torch
 
 

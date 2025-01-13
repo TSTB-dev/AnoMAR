@@ -2,6 +2,47 @@ from multiprocessing import Value
 
 import torch
 
+class ConstantMaskCollator(object):
+    def __init__(
+        self, 
+        ratio=0.75, # ratio of masked patches
+        input_size=(224, 224),
+        patch_size=16,
+        mask_seed=None,
+        mask=None
+    ):
+        super(ConstantMaskCollator, self).__init__()
+        self.mask = mask
+        self.patch_size = patch_size
+        self.height, self.width = input_size[0] // patch_size, input_size[1] // patch_size
+        self.ratio = ratio
+        self.mask_seed = mask_seed
+        
+        if mask is not None:
+            assert mask.size(0) == self.height * self.width, "Mask size should be equal to number of patches"
+        else:
+            self.mask = self._generate_random_mask()
+        
+    def _generate_random_mask(self):
+        num_patches = self.height * self.width
+        num_keep = int(num_patches * (1. - self.ratio))
+        m = torch.randperm(num_patches)[num_keep:]
+        m = m.sort().values
+        return m
+    
+    def __call__(self, batch):
+        '''
+        Create constant masks for each sample in the batch
+        
+        Ouptut:
+            collated_batch_org: original batch
+            collated_masks: masks for each sample in the batch, (B, M), M: num of masked patches
+        '''
+        B = len(batch)
+        collated_batch_org = torch.utils.data.default_collate(batch)
+        collated_masks = self.mask.unsqueeze(0).expand(B, -1)  # (B, M), M: num of masked patches
+        return collated_batch_org, collated_masks    
+
 class RandomMaskCollator(object):
     def __init__(
         self,
