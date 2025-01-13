@@ -315,6 +315,7 @@ class DiT(nn.Module):
         input_size=224,
         patch_size=16, 
         in_channels=3, 
+        cond_channels=384,
         hidden_size=384,
         depth=4,
         num_heads=8,
@@ -329,6 +330,7 @@ class DiT(nn.Module):
         self.input_size = input_size
         self.patch_size = patch_size
         self.in_channels = in_channels
+        self.cond_channels = cond_channels
         self.hidden_size = hidden_size
         self.out_channels = in_channels * 2 if learn_sigma else in_channels
         self.depth = depth
@@ -341,7 +343,7 @@ class DiT(nn.Module):
         
         self.x_embedder = PatchEmbed(input_size, patch_size, in_channels, hidden_size, bias=True)
         self.x_embedder_linear = nn.Linear(in_channels, hidden_size, bias=True)
-        self.z_embedder = ConditionEmbedder(in_channels, hidden_size)
+        self.z_embedder = ConditionEmbedder(cond_channels, hidden_size)
         self.t_embedder = TimestepEmbedder(hidden_size)
         self.y_embedder = LabelEmbedder(num_classes, hidden_size, class_dropout_prob)
         

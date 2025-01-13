@@ -16,11 +16,10 @@ from pprint import pprint
 
 from datasets import build_dataset
 from utils import get_optimizer, get_lr_scheduler
-from models import create_vae, AutoencoderKL, create_mar_model, EncoderDecoerMAR
+from models import create_vae, AutoencoderKL, create_emar_model, EncoderMAR
 from denoiser import get_denoiser, Denoiser
 from backbones import get_backbone
-from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator, \
-    indices_to_mask, mask_to_indices
+from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AnoMAR Training")
@@ -76,8 +75,9 @@ def main(args):
     mim_in_sh = (backbone_embed_dim, img_size // backbone_stride, img_size // backbone_stride)
     
     # build mim model
+    config['diffusion']['z_channels'] = config['mim']['out_channels']
     denoiser = get_denoiser(**config['diffusion'], input_shape=mim_in_sh)
-    model: EncoderDecoerMAR = create_mar_model(denoiser, **config['mim'])
+    model: EncoderMAR = create_emar_model(denoiser, **config['mim'])
     model.to(device)
     if config['mim']['ckpt_path'] is not None:
         model.load_state_dict(torch.load(config['mim']['ckpt_path']))
@@ -97,10 +97,6 @@ def main(args):
         )
     elif mask_strategy == "checkerboard":
         mask_collator = CheckerBoardMaskCollator(
-            input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
-        )
-    elif mask_strategy == "constant":
-        mask_collator = ConstantMaskCollator(
             input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
         )
     else:
@@ -140,8 +136,7 @@ def main(args):
                     x = backbone(img)  # (B, c, h, w)
             
             outputs = model(x, mask, labels)
-            mim_loss, diff_loss = outputs['mim_loss'], outputs['diff_loss']
-            loss = config['mim']['mim_loss_weight'] * mim_loss + config['mim']['diff_loss_weight'] * diff_loss
+            loss = outputs['diff_loss']
 
             # backward
             optimizer.zero_grad()
@@ -157,10 +152,9 @@ def main(args):
                 ema_param.data.mul_(ema_decay).add_(model_param.data, alpha=1.0 - ema_decay)
             
             if i % config["logging"]["log_interval"] == 0:
-                print(f"Epoch {epoch}, Iter {i}, Loss {loss.item():.5f}, MIM Loss {mim_loss.item():.5f}, Diffusion Loss {diff_loss.item():.5f}")      
+                print(f"Epoch {epoch}, Iter {i}, Loss {loss.item():.5f}")      
                 tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader) + i)  
-                tb_writer.add_scalar("MIM Loss", mim_loss.item(), epoch * len(train_loader) + i)
-                tb_writer.add_scalar("Diffusion Loss", diff_loss.item(), epoch * len(train_loader) + i)
+                tb_writer.add_scalar("Diffusion Loss", loss.item(), epoch * len(train_loader) + i)
                 
                 if config["logging"]["save_images"]:
                     pass

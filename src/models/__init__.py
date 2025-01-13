@@ -3,9 +3,25 @@ from .unet import Unet
 from .dit import DiT
 from .vae import AutoencoderKL
 from .mim import mim_tiny, mim_small, mim_base, mim_large, mim_huge, mim_gigant, predictor_tiny, \
-    predictor_small, predictor_base, predictor_large, predictor_huge, predictor_gigant, PREDICTOR_SUPPORTEED_MODELS, MIM_SUPPORTEED_MODELS, MaskedImageModelingModel, MaskedImageModelingModelWithDiffusion, \
-        mar_tiny, mar_small, mar_base, mar_large, mar_huge, mar_gigant
+    predictor_small, predictor_base, predictor_large, predictor_huge, predictor_gigant, PREDICTOR_SUPPORTEED_MODELS, MIM_SUPPORTEED_MODELS, MaskedImageModelingModel, EncoderDecoerMAR, \
+        mar_tiny, mar_small, mar_base, mar_large, mar_huge, mar_gigant, emar_tiny, emar_small, emar_base, emar_large, emar_huge, emar_gigant, EMAR_SUPPORTEED_MODELS, EncoderMAR
 from . import mim
+
+def create_emar_model(denoiser, **kwargs):
+    model_type = kwargs['model_type']
+    assert model_type in MIM_SUPPORTEED_MODELS, f"Model {model_type} not supported"
+    if 'tiny' in model_type:
+        return emar_tiny(denoiser, **kwargs)
+    elif 'small' in model_type:
+        return emar_small(denoiser, **kwargs)
+    elif 'base' in model_type:
+        return emar_base(denoiser, **kwargs)
+    elif 'large' in model_type:
+        return emar_large(denoiser, **kwargs)
+    elif 'huge' in model_type:
+        return emar_huge(denoiser, **kwargs)
+    elif 'gigant' in model_type:
+        return emar_gigant(denoiser, **kwargs)
 
 def create_mar_model(denoiser, **kwargs):
     model_type = kwargs['model_type']
@@ -97,6 +113,7 @@ def create_denising_model(
             input_size=in_res,
             patch_size=patch_size,
             in_channels=in_channels,
+            cond_channels=z_channels,
             hidden_size=model_channels,
             depth=num_blocks,
             num_heads=num_heads,

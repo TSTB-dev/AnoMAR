@@ -23,7 +23,7 @@ from pprint import pprint
 
 from utils import AverageMeter, calculate_mask_coverage
 from datasets import build_dataset, EvalDataLoader
-from models import create_vae, AutoencoderKL, create_mar_model, EncoderDecoerMAR
+from models import create_vae, AutoencoderKL, create_emar_model, EncoderMAR
 from backbones import get_backbone
 from denoiser import get_denoiser, Denoiser
 from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
@@ -110,8 +110,9 @@ def main(args):
     mim_in_sh = (backbone_embed_dim, img_size // backbone_stride, img_size // backbone_stride)
     
     # build mim model
+    config['diffusion']['z_channels'] = config['mim']['out_channels']
     denoiser: Denoiser = get_denoiser(**config['diffusion'], input_shape=mim_in_sh)
-    model: EncoderDecoerMAR = create_mar_model(denoiser, **config['mim'])
+    model: EncoderMAR = create_emar_model(denoiser, **config['mim'])
     model_ckpt = torch.load(args.model_ckpt, map_location='cpu', weights_only=True)
     results = model.load_state_dict(model_ckpt, strict=True)
     print(results)
@@ -191,7 +192,7 @@ def main(args):
         # 1. MIM Prediction 
         latents = encode_images(images)
         outputs = model.masked_forward(latents, mask)  # (B)
-        cond, target = outputs['preds'], outputs['targets']  # (B, M, c*p*p)
+        cond, target = outputs['enc_features'], outputs['targets']  # (B, V, c*p*p)
         
         # 2. Denoising on masked tokens
         denoiser = model.denoiser
@@ -290,7 +291,7 @@ def main(args):
         # 1. MIM Prediction
         latents = encode_images(images)
         outputs = model.masked_forward(latents, mask)  # (B)
-        cond, target = outputs['preds'], outputs['targets']  # (B, M, c*p*p)
+        cond, target = outputs['enc_features'], outputs['targets']  # (B, M, c*p*p)
         
         # 2. Denoising on masked tokens
         t = torch.tensor([args.start_step] * num_samples * len(images)).to(device)

@@ -98,7 +98,6 @@ class Denoiser(nn.Module):
         # class embedding
         cls_embed = self.cls_embed(cls_label)  # (B, Z)
         cls_embed = torch.repeat_interleave(cls_embed, self.num_repeat, dim=0)  # (B*N, Z)
-        
 
         # sample timestep
         t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B*N, )

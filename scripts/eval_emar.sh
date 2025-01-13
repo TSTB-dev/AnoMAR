@@ -1,15 +1,15 @@
 # # # bottle  cable  capsule  carpet  grid  hazelnut  leather  metal_nut  pill  screw  tile  toothbrush  transistor  wood  zipper
 
 export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_mar.py \
+python src/evaluate_emar.py \
     --num_masks 4 \
     --num_samples 4 \
     --num_inference_steps 100 \
    --start_step 96 \
     --recon_space latent \
-    --output_dir ./results/ad_mar_ca_base_vae_loco/juice_bottle \
-    --model_ckpt ./results/ad_mar_ca_base_vae_loco/juice_bottle/model_latest.pth \
-    --config_path ./results/ad_mar_ca_base_vae_loco/juice_bottle/config.yaml \
+    --output_dir ./results/ad_emar_ca_base_vae_loco/juice_bottle \
+    --model_ckpt ./results/ad_emar_ca_base_vae_loco/juice_bottle/model_latest.pth \
+    --config_path ./results/ad_emar_ca_base_vae_loco/juice_bottle/config.yaml \
     --device cuda \
     --save_images \
     --batch_size 1 \
