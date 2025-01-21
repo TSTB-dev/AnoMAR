@@ -19,7 +19,7 @@ from utils import get_optimizer, get_lr_scheduler
 from models import create_vae, AutoencoderKL, create_mar_model, EncoderDecoerMAR
 from denoiser import get_denoiser, Denoiser
 from backbones import get_backbone
-from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator, \
+from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator, SlidingWindowMaskCollator, \
     indices_to_mask, mask_to_indices
 
 def parse_args():
@@ -67,7 +67,6 @@ def main(args):
         param.requires_grad = False
         
     mask_strategy = config['data']['mask']['strategy']
-    mask_ratio = config['data']['mask']['ratio']
     patch_size = config['mim']['patch_size']
     
     backbone_embed_dim = config['backbone']['embed_dim']
@@ -88,19 +87,28 @@ def main(args):
     model_ema.to(device)
     
     if mask_strategy == "random":
+        mask_ratio = config['data']['mask']['ratio']
+        min_ratio, max_ratio = config['data']['mask']['min_ratio'], config['data']['mask']['max_ratio']
+        print(f"Setting mask ratio to {mask_ratio} with min_ratio {min_ratio} and max_ratio {max_ratio}")
         mask_collator = RandomMaskCollator(
-            ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size
+            ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size, min_ratio=min_ratio, max_ratio=max_ratio
         )
     elif mask_strategy == "block":
+        mask_ratio = config['data']['mask']['ratio']
         mask_collator = BlockRandomMaskCollator(
-            input_size=mim_in_sh[1], patch_size=patch_size, mask_ratio=mask_ratio, **config['data']['mask']
+            input_size=mim_in_sh[1], patch_size=patch_size, mask_ratio=mask_ratio
         )
     elif mask_strategy == "checkerboard":
         mask_collator = CheckerBoardMaskCollator(
             input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
         )
     elif mask_strategy == "constant":
+        mask_ratio = config['data']['mask']['ratio']
         mask_collator = ConstantMaskCollator(
+            ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size
+        )
+    elif mask_strategy == "sliding_window":
+        mask_collator = SlidingWindowMaskCollator(
             input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
         )
     else:
@@ -139,7 +147,7 @@ def main(args):
                 else:
                     x = backbone(img)  # (B, c, h, w)
             
-            outputs = model(x, mask, labels)
+            outputs = model(x, mask, labels, deteched_prediction=config['mim']['detached_prediction'])
             mim_loss, diff_loss = outputs['mim_loss'], outputs['diff_loss']
             loss = config['mim']['mim_loss_weight'] * mim_loss + config['mim']['diff_loss_weight'] * diff_loss
 

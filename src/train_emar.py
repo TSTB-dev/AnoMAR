@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument('--world_size', type=int, default=1, help='Number of GPUs to use')
     parser.add_argument('--rank', type=int, default=0, help='Rank of the current process')
     parser.add_argument('--config_path', type=str, default='configs/config.yaml', help='Path to the config file')
+    parser.add_argument('--inverse_mask', action='store_true', help='Inverse mask')
 
     args = parser.parse_args()
     return args
@@ -75,7 +76,7 @@ def main(args):
     mim_in_sh = (backbone_embed_dim, img_size // backbone_stride, img_size // backbone_stride)
     
     # build mim model
-    config['diffusion']['z_channels'] = config['mim']['out_channels']
+    # config['diffusion']['z_channels'] = config['mim']['out_channels']
     denoiser = get_denoiser(**config['diffusion'], input_shape=mim_in_sh)
     model: EncoderMAR = create_emar_model(denoiser, **config['mim'])
     model.to(device)
@@ -89,7 +90,7 @@ def main(args):
     
     if mask_strategy == "random":
         mask_collator = RandomMaskCollator(
-            ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size
+            input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
         )
     elif mask_strategy == "block":
         mask_collator = BlockRandomMaskCollator(
@@ -135,7 +136,7 @@ def main(args):
                 else:
                     x = backbone(img)  # (B, c, h, w)
             
-            outputs = model(x, mask, labels)
+            outputs = model(x, mask, labels, enc_inv_mask=args.inverse_mask, shortcut=config['mim']['shortcut'])
             loss = outputs['diff_loss']
 
             # backward

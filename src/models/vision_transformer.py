@@ -8,6 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
+
+
 def indices_to_mask(mask_indices, L):
     """Convert indices to binary mask keeping it's orders.
     Args:
@@ -21,8 +23,8 @@ def indices_to_mask(mask_indices, L):
     for b in range(B):
         for order, idx in enumerate(mask_indices[b]):
             masks[b, idx] = order + 1 
-    inverse_masks = (masks != 0)
-    return inverse_masks.bool()
+    masks = (masks != 0)
+    return masks.bool()
 
 def mask_to_indices(masks):
     """Convert binary mask to indices keeping it's orders.
@@ -46,6 +48,12 @@ def mask_to_indices(masks):
     mask_indices = torch.stack(mask_indices_list, dim=0)
     
     return mask_indices
+
+def get_unmasked_indices(masked_indices, L):
+    mask = indices_to_mask(masked_indices, L)
+    inv_mask = ~mask
+    unmasked_indices = mask_to_indices(inv_mask)
+    return unmasked_indices
 
 class PatchEmbed(nn.Module):
     def __init__(

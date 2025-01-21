@@ -26,7 +26,8 @@ from datasets import build_dataset, EvalDataLoader
 from models import create_vae, AutoencoderKL, create_mar_model, EncoderDecoerMAR
 from backbones import get_backbone
 from denoiser import get_denoiser, Denoiser
-from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
+from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator, SlidingWindowMaskCollator, \
+    indices_to_mask, mask_to_indices
 
 def parser_args():
     parser = argparse.ArgumentParser(description='AnoMAR Sampling')
@@ -39,6 +40,7 @@ def parser_args():
     parser.add_argument('--eta', type=float, help='Eta for sampling', default=1.0)
     parser.add_argument('--num_masks', type=int, help='Number of masks to generate', default=1)
     parser.add_argument('--recon_space', type=str, default='latent', help='Reconstruction space')  # ['latent', 'pixel', 'feature']
+    parser.add_argument('--aggregation', type=str, default='mean', help='Aggregation method')  # ['mean', 'max']
     parser.add_argument('--save_images', action='store_true', help='Save images')
     parser.add_argument('--output_dir', type=str, help='Output directory')
     parser.add_argument('--model_ckpt', type=str, help='Path to the model checkpoint')
@@ -125,13 +127,14 @@ def main(args):
         
     # build mask collator
     mask_strategy = config['data']['mask']['strategy']
-    mask_ratio = config['data']['mask']['ratio']
 
     if mask_strategy == "random":
+        mask_ratio = config['data']['mask']['ratio']
         mask_collator = RandomMaskCollator(
             ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size
         )
     elif mask_strategy == "block":
+        mask_ratio = config['data']['mask']['ratio']
         mask_collator = BlockRandomMaskCollator(
             input_size=mim_in_sh[1], patch_size=patch_size, mask_ratio=mask_ratio, **config['data']['mask']
         )
@@ -139,6 +142,18 @@ def main(args):
         mask_collator = CheckerBoardMaskCollator(
             input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
         )
+    elif mask_strategy == "constant":
+        mask_ratio = config['data']['mask']['ratio']
+        mask_collator = ConstantMaskCollator(
+            ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size
+        )
+    elif mask_strategy == "sliding_window":
+        config['data']['mask']['order'] = 'raster'
+        mask_collator = SlidingWindowMaskCollator(
+            input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
+        )
+        args.num_masks = len(mask_collator)
+        print(f"For sliding window mask, num_masks is overrided to {args.num_masks}")
     else:
         raise ValueError(f"Invalid mask strategy: {mask_strategy}")
     
@@ -155,6 +170,7 @@ def main(args):
     print("Evaluating on normal samples")
     normal_scores = []
     mask_coverage_meter = AverageMeter()
+    loss_meter = AverageMeter()
     
     for i, (batch, mask_indices) in tqdm(enumerate(normal_loader), total=len(normal_loader)):
         mask = indices_to_mask(mask_indices, model.num_patches)
@@ -187,9 +203,14 @@ def main(args):
             m = torch.repeat_interleave(m, repeats=patch_size, dim=2)
             m = m.float()
             return m
-            
-        # 1. MIM Prediction 
+
         latents = encode_images(images)
+        
+        # Forward pass for loss calculation
+        loss = model(latents, mask, labels)['diff_loss']
+        loss_meter.update(loss.item(), images.size(0))
+        
+        # 1. MIM Prediction 
         outputs = model.masked_forward(latents, mask)  # (B)
         cond, target = outputs['preds'], outputs['targets']  # (B, M, c*p*p)
         
@@ -225,7 +246,10 @@ def main(args):
             anom_map = torch.mean((x - y)**2, dim=-1)  # (B*K, M)
             anom_map = anom_map.view(-1, num_samples, anom_map.shape[-1])  # (B, K, M)
             anom_map = torch.min(anom_map, dim=1).values  # (B, M)
-            anom_score = torch.mean(anom_map)
+            if args.aggregation == 'mean':
+                anom_score = torch.mean(anom_map)
+            elif args.aggregation == 'max':
+                anom_score = torch.max(torch.mean(anom_map, dim=1))
             return anom_score
         
         def anomaly_map(x, y):
@@ -248,18 +272,19 @@ def main(args):
             raise ValueError(f"Invalid reconstruction space: {args.recon_space}")
         
         if i in sample_indices:
+            b = 0
             pred_imgs = decode_images(pred_latents_map)  # (B*K, 3, H, W)
             mask = reshape_mask(mask).unsqueeze(1)  # (B, H, W)
             org_imgs = convert2image(postprocess(images))  # (B, H, W, C)
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
             masked_imgs = convert2image(postprocess(images) * (1 - mask))  # (B, H, W, C)
             pred_imgs = convert2image(postprocess(pred_imgs)) # (B*K, H, W, C)
-            pred_imgs = pred_imgs.reshape(-1, num_samples, *pred_imgs.shape[1:])[0]  # (K, H, W, C)  
+            pred_imgs = pred_imgs.reshape(-1, num_samples, *pred_imgs.shape[1:])[b]  # (K, H, W, C)  
             anom_map = convert2image(anomaly_map(pred_latents, latents))
             
             sample_dict[f'normal_{i}'] = {
-                'images': org_imgs[0], # (H, W, C)
-                'masked_images': masked_imgs[0],
+                'images': org_imgs[b], # (H, W, C)
+                'masked_images': masked_imgs[b],
                 'pred_images': pred_imgs,
                 'gt_masks': convert2image(gt_masks)[0],  # (H, W)
                 'labels': 'normal',
@@ -268,13 +293,15 @@ def main(args):
             }
         
     normal_scores = torch.tensor(normal_scores)
-        
+    print(f"Reconstruction Loss: {loss_meter.avg:.4f}")
+    
     # Evaluation on anomalous samples
     print("Evaluating on anomalous samples")
     anom_loader = EvalDataLoader(anom_dataset, args.num_masks, collate_fn=mask_collator, shared_masks=normal_loader.shared_masks)
     anom_scores = []            
     anom_types = []
     mask_coverage_meter = AverageMeter()
+    loss_meter = AverageMeter()
     for i, (batch, mask_indices) in tqdm(enumerate(anom_loader), total=len(anom_loader)):
         mask = indices_to_mask(mask_indices, model.num_patches)
         mask = mask.to(device)
@@ -289,6 +316,9 @@ def main(args):
         
         # 1. MIM Prediction
         latents = encode_images(images)
+        loss = model(latents, mask, labels)['diff_loss']
+        loss_meter.update(loss.item(), images.size(0))
+        
         outputs = model.masked_forward(latents, mask)  # (B)
         cond, target = outputs['preds'], outputs['targets']  # (B, M, c*p*p)
         
@@ -316,26 +346,29 @@ def main(args):
             raise ValueError(f"Invalid reconstruction space: {args.recon_space}")
         
         if i in sample_indices:
+            b = 0
             pred_imgs = decode_images(pred_latents_map)  # (B*K, 3, H, W)
             mask = reshape_mask(mask).unsqueeze(1)  # (B, H, W)
             org_imgs = convert2image(postprocess(images))  # (B, H, W, C)
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
             masked_imgs = convert2image(postprocess(images) * (1 - mask))  # (B, H, W, C)
             pred_imgs = convert2image(postprocess(pred_imgs)) # (B*K, H, W, C)
-            pred_imgs = pred_imgs.reshape(-1, num_samples, *pred_imgs.shape[1:])[0]
+            pred_imgs = pred_imgs.reshape(-1, num_samples, *pred_imgs.shape[1:])[b]
             anom_map = convert2image(anomaly_map(pred_latents, latents))
             
             sample_dict[f'anom_{i}'] = {
-                'images': org_imgs[0], # (H, W, C)
-                'masked_images': masked_imgs[0],  
+                'images': org_imgs[b], # (H, W, C)
+                'masked_images': masked_imgs[b],  
                 'pred_images': pred_imgs,
-                'gt_masks': convert2image(gt_masks)[0],  # (H, W)
+                'gt_masks': convert2image(gt_masks)[b],  # (H, W)
                 'labels': 'anomalous',
                 'anomaly_maps': anom_map, # (H, W)
                 'mask_coverage': mask_cov.item()
             }
                 
     anom_scores = torch.tensor(anom_scores)
+    
+    print(f"Reconstruction Loss: {loss_meter.avg:.4f}")
     
     print("Calculating AUC...🧑‍⚕️")
     print(f"===========================================")
@@ -366,7 +399,7 @@ def main(args):
         "recon_space": args.recon_space,
         "mask_coverage": mask_coverage_meter.avg,
         "mask_strategy": mask_strategy,
-        "mask_ratio": mask_ratio,
+        "mask_ratio": mask_ratio if mask_strategy in ['random', 'block', 'constant'] else None,
     }
     results.update(auc_dict)
     output_dir = Path(args.output_dir)
@@ -383,7 +416,6 @@ def main(args):
 def save_images(sample_dict, anom_scores, output_dir, num_samples):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
     min_score = min(anom_scores)
     max_score = max(anom_scores)
     
@@ -409,11 +441,12 @@ def save_images(sample_dict, anom_scores, output_dir, num_samples):
             ax[i, 2 + j].set_title(f"Pred images {j + 1}", color=font_color)
             ax[i, 2 + j].axis('off')
         
-        ax[i, 2 + min(num_samples, 3)].imshow(value['anomaly_maps'], vmin=min_score, vmax=max_score)
+        # ax[i, 2 + min(num_samples, 3)].imshow(value['anomaly_maps'], vmin=min_score, vmax=max_score)
+        ax[i, 2 + min(num_samples, 3)].imshow(value['anomaly_maps'])
         ax[i, 2 + min(num_samples, 3)].set_title(f"Anomaly Map {value['labels']}", color=font_color)
         ax[i, 2 + min(num_samples, 3)].axis('off')
         
-        ax[i, 3 + min(num_samples, 3)].imshow(value['gt_masks'], cmap='gray', vmin=0, vmax=1)
+        ax[i, 3 + min(num_samples, 3)].imshow(value['gt_masks'], cmap='gray', vmin=min_score, vmax=max_score)
         ax[i, 3 + min(num_samples, 3)].set_title(f"GT Mask {value['labels']}", color=font_color)
         ax[i, 3 + min(num_samples, 3)].axis('off')
             

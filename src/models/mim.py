@@ -11,7 +11,7 @@ from einops import rearrange
 import sys
 sys.path.append("src/models")
 
-from vision_transformer import mask_to_indices
+from vision_transformer import mask_to_indices, get_unmasked_indices
 from vision_transformer import VisionTransformerEncoder, VisionTransformerPredictor
 
 EMAR_SUPPORTEED_MODELS = [
@@ -153,7 +153,7 @@ class MaskedImageModelingModel(nn.Module):
             "pred_attns": pred_attns,
             "enc_features": enc_x,
         }
-
+        
 class EncoderMAR(nn.Module):
     def __init__(
         self, 
@@ -197,6 +197,8 @@ class EncoderMAR(nn.Module):
         x: torch.Tensor,
         mask: torch.Tensor,
         cls_label: torch.Tensor,
+        enc_inv_mask: bool = False,
+        shortcut: bool = False,
     ):
         """Forward pass of MaskedImageModelingModel with diffusion. 
         Args: 
@@ -212,15 +214,22 @@ class EncoderMAR(nn.Module):
         assert mask.dtype == torch.bool, "The mask tensor should be boolean."
         target_x = rearrange(x.clone().detach(), "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)  
-        
-        # Feed the features to the encoder
-        enc_x, enc_attns = self.encoder(x, mask) # (B, V, d), (B, h, V, V)
-        enc_x = self.out_proj(enc_x)  # (B, V, d_out)
-        
         mask_indices = mask_to_indices(mask)
         masked_target_x = torch.gather(target_x, 1, mask_indices.unsqueeze(-1).expand(-1, -1, target_x.shape[-1]))  # (B, M, c*p*p)
-        diff_loss = self.denoiser(masked_target_x, cls_label, z=enc_x, mask_indices=mask_indices)
         
+        enc_attns = None
+        if shortcut:
+            unmasked_indices = get_unmasked_indices(mask_indices, target_x.size(1))
+            enc_x = torch.gather(target_x, 1, unmasked_indices.unsqueeze(-1).expand(-1, -1, target_x.shape[-1]))
+        else:
+            # Feed the features to the encoder
+            if enc_inv_mask:
+                enc_x, enc_attns = self.encoder(x, ~mask)  # (B, M, d), (B, h, M, M)
+            else:
+                enc_x, enc_attns = self.encoder(x, mask)  # (B, V, d), (B, h, V, V)
+            enc_x = self.out_proj(enc_x)  # (B, [V/M], d_out)
+            
+        diff_loss = self.denoiser(masked_target_x, cls_label, z=enc_x, mask_indices=mask_indices)
         # reshape the features
         target_x = rearrange(target_x, "b (h w) (c p1 p2) -> b c (h p1) (w p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)   # (B, c, h, w)
@@ -232,18 +241,26 @@ class EncoderMAR(nn.Module):
             "enc_features": enc_x,
         }
     
-    def masked_forward(self, x, mask):
+    def masked_forward(self, x, mask, enc_inv_mask=False, shortcut=False):
         """Predict masked tokens"""
         assert mask.dtype == torch.bool, "The mask tensor should be boolean."
         target_x = rearrange(x.clone().detach(), "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=self.patch_size, p2=self.patch_size, \
             h=self.in_res//self.patch_size, w=self.in_res//self.patch_size)  
-        
-        # Feed the features to the encoder
-        enc_x, enc_attns = self.encoder(x, mask)
-        enc_x = self.out_proj(enc_x)
-        
         mask_indices = mask_to_indices(mask)
         masked_target_x = torch.gather(target_x, 1, mask_indices.unsqueeze(-1).expand(-1, -1, target_x.shape[-1]))
+
+        enc_attns = None
+        if shortcut:
+            unmasked_indices = get_unmasked_indices(mask_indices, target_x.size(1))
+            enc_x = torch.gather(target_x, 1, unmasked_indices.unsqueeze(-1).expand(-1, -1, target_x.shape[-1]))
+        else:
+            # Feed the features to the encoder
+            if enc_inv_mask:
+                enc_x, enc_attns = self.encoder(x, ~mask)  # (B, M, d), (B, h, M, M)
+            else:
+                enc_x, enc_attns = self.encoder(x, mask)  # (B, V, d), (B, h, V, V)
+            enc_x = self.out_proj(enc_x)
+        
         return {
             "targets": masked_target_x,  
             "indices": mask_indices,
@@ -328,6 +345,7 @@ class EncoderDecoerMAR(nn.Module):
         mask: torch.Tensor,
         cls_label: torch.Tensor,
         loss_on_all_patches: bool = False,
+        deteched_prediction=False,
     ):
         """Forward pass of MaskedImageModelingModel with diffusion. 
         Args: 
@@ -335,6 +353,7 @@ class EncoderDecoerMAR(nn.Module):
             mask (torch.Tensor): Mask tensor, shape (B, L)
             cls_label (torch.Tensor): Class label tensor, shape (B,)
             loss_on_all_patches (bool): If True, calculate the loss on all patches. Otherwise, calculate the loss on the masked patches only. 
+            deteched_prediction (bool): If True, do not calculate the gradients of MIM model w/r to the denoising. 
         Returns:
             {
                 "mim_loss": torch.Tensor,
@@ -358,6 +377,8 @@ class EncoderDecoerMAR(nn.Module):
         mim_loss = self.calculate_loss(pred_x, target_x, mask, loss_on_all_patches)
         
         # denoising
+        if deteched_prediction:
+            pred_x = pred_x.detach()
         mask_indices = mask_to_indices(mask) 
         masked_target_x = torch.gather(target_x, 1, mask_indices.unsqueeze(-1).expand(-1, -1, target_x.shape[-1]))  # (B, M, c*p*p)
         masked_pred_x = torch.gather(pred_x, 1, mask_indices.unsqueeze(-1).expand(-1, -1, pred_x.shape[-1]))  # (B, M, c*p*p)

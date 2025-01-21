@@ -100,9 +100,7 @@ def main(args):
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     denoiser_ckpt = torch.load(args.model_ckpt, map_location="cpu", weights_only=True)
-    denoiser_ckpt['cls_embed.weight'] = denoiser_ckpt['clas_embed.weight']
-    # TODO: 
-    results = model.load_state_dict(denoiser_ckpt, strict=False)
+    results = model.load_state_dict(denoiser_ckpt, strict=True)
     print(results)
     model.to(device)
     model.eval()

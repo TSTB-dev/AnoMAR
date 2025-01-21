@@ -1,17 +1,18 @@
 # # # bottle  cable  capsule  carpet  grid  hazelnut  leather  metal_nut  pill  screw  tile  toothbrush  transistor  wood  zipper
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=4
 python src/evaluate_mar.py \
     --num_masks 4 \
     --num_samples 4 \
     --num_inference_steps 100 \
    --start_step 64 \
     --recon_space latent \
-    --output_dir ./results/ad_mar_ca_base_vae_loco_mim/splicing_connectors \
-    --model_ckpt ./results/ad_mar_ca_base_vae_loco_mim/splicing_connectors/model_latest.pth \
-    --config_path ./results/ad_mar_ca_base_vae_loco_mim/splicing_connectors/config.yaml \
-    --device cuda \
+    --aggregation mean \
+    --output_dir ./results/ad_mar_ca_base_vae_loco_n1/breakfast_box \
+    --model_ckpt ./results/ad_mar_ca_base_vae_loco_n1/breakfast_box/model_latest.pth \
+    --config_path ./results/ad_mar_ca_base_vae_loco_n1/breakfast_box/config.yaml \
     --save_images \
+    --device cuda \
     --batch_size 1 \
     --sample_indices 10 20
 

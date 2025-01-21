@@ -38,7 +38,7 @@ diffusion:
   mlp_ratio: 4
   class_dropout_prob: 0.0
   target_channels: 3
-  z_channels: 256
+  z_channels: 16
   depth: 4
   width: 256
   num_sampling_steps: '100'

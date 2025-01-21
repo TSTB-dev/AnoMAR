@@ -3,13 +3,73 @@
 export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_emar.py \
     --num_masks 4 \
-    --num_samples 4 \
+    --num_samples 16 \
     --num_inference_steps 100 \
-   --start_step 96 \
+   --start_step 64 \
     --recon_space latent \
-    --output_dir ./results/ad_emar_ca_base_vae_loco/juice_bottle \
-    --model_ckpt ./results/ad_emar_ca_base_vae_loco/juice_bottle/model_latest.pth \
-    --config_path ./results/ad_emar_ca_base_vae_loco/juice_bottle/config.yaml \
+    --output_dir ./results/ad_emar_ca_base_vae_loco_enc_id_scale/breakfast_box \
+    --model_ckpt ./results/ad_emar_ca_base_vae_loco_enc_id_scale/breakfast_box/model_latest.pth \
+    --config_path ./results/ad_emar_ca_base_vae_loco_enc_id_scale/breakfast_box/config.yaml \
+    --device cuda \
+    --save_images \
+    --batch_size 1 \
+    --sample_indices 0 1 &
+
+export CUDA_VISIBLE_DEVICES=1
+python src/evaluate_emar.py \
+    --num_masks 4 \
+    --num_samples 16 \
+    --num_inference_steps 100 \
+   --start_step 64 \
+    --recon_space latent \
+    --output_dir ./results/ad_emar_ca_base_vae_loco_enc_id_scale/juice_bottle \
+    --model_ckpt ./results/ad_emar_ca_base_vae_loco_enc_id_scale/juice_bottle/model_latest.pth \
+    --config_path ./results/ad_emar_ca_base_vae_loco_enc_id_scale/juice_bottle/config.yaml \
+    --device cuda \
+    --save_images \
+    --batch_size 1 \
+    --sample_indices 0 1 &
+
+export CUDA_VISIBLE_DEVICES=2
+python src/evaluate_emar.py \
+    --num_masks 4 \
+    --num_samples 16 \
+    --num_inference_steps 100 \
+   --start_step 64 \
+    --recon_space latent \
+    --output_dir ./results/ad_emar_ca_base_vae_loco_enc_id_scale/pushpins \
+    --model_ckpt ./results/ad_emar_ca_base_vae_loco_enc_id_scale/pushpins/model_latest.pth \
+    --config_path ./results/ad_emar_ca_base_vae_loco_enc_id_scale/pushpins/config.yaml \
+    --device cuda \
+    --save_images \
+    --batch_size 1 \
+    --sample_indices 0 1 &
+
+export CUDA_VISIBLE_DEVICES=3
+python src/evaluate_emar.py \
+    --num_masks 4 \
+    --num_samples 16 \
+    --num_inference_steps 100 \
+   --start_step 64 \
+    --recon_space latent \
+    --output_dir ./results/ad_emar_ca_base_vae_loco_enc_id_scale/screw_bag \
+    --model_ckpt ./results/ad_emar_ca_base_vae_loco_enc_id_scale/screw_bag/model_latest.pth \
+    --config_path ./results/ad_emar_ca_base_vae_loco_enc_id_scale/screw_bag/config.yaml \
+    --device cuda \
+    --save_images \
+    --batch_size 1 \
+    --sample_indices 0 1 &
+
+export CUDA_VISIBLE_DEVICES=4
+python src/evaluate_emar.py \
+    --num_masks 4 \
+    --num_samples 16 \
+    --num_inference_steps 100 \
+   --start_step 64 \
+    --recon_space latent \
+    --output_dir ./results/ad_emar_ca_base_vae_loco_enc_id_scale/splicing_connectors \
+    --model_ckpt ./results/ad_emar_ca_base_vae_loco_enc_id_scale/splicing_connectors/model_latest.pth \
+    --config_path ./results/ad_emar_ca_base_vae_loco_enc_id_scale/splicing_connectors/config.yaml \
     --device cuda \
     --save_images \
     --batch_size 1 \

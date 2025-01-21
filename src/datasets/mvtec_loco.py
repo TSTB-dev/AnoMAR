@@ -55,14 +55,13 @@ class MVTecLOCO(Dataset):
         # # load files from the dataset
         self.img_files = self.get_files()
         self.labels = [0] * len(self.img_files)
+        self.mask_transform = transforms.Compose(
+            [
+                transforms.Resize(input_res),
+                transforms.ToTensor(),
+            ]
+        )
         if self.split == 'test':
-            self.mask_transform = transforms.Compose(
-                [
-                    transforms.Resize(input_res),
-                    transforms.ToTensor(),
-                ]
-            )
-
             self.labels = []
             for file in self.img_files:
                 status = str(file).split(os.path.sep)[-2]
@@ -100,6 +99,9 @@ class MVTecLOCO(Dataset):
         
         if self.split == 'train' or self.split == 'val':
             inputs["samples"] = sample
+            inputs["labels"] = 0
+            inputs["anom_type"] = "good"
+            inputs["masks"] = self.mask_transform(Image.new('L', (self.input_res, self.input_res), 0))
             return inputs
         else:
             inputs["samples"] = sample

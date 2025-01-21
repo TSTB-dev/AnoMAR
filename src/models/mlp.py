@@ -173,7 +173,6 @@ class SimpleMLPAdaLN(nn.Module):
                 x = block(x, y)
         
         x = self.final_layer(x, y)
-        
         return x
         
     def forward_with_cfg(self, x, t, c, cfg_scale):

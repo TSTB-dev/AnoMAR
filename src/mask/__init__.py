@@ -1,4 +1,4 @@
-from .mask_collator import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator
+from .mask_collator import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator, SlidingWindowMaskCollator
 import torch
 
 
@@ -15,8 +15,8 @@ def indices_to_mask(mask_indices, L):
     for b in range(B):
         for order, idx in enumerate(mask_indices[b]):
             masks[b, idx] = order + 1 
-    inverse_masks = (masks != 0)
-    return inverse_masks.bool()
+    masks = (masks != 0)
+    return masks.bool()
 
 def mask_to_indices(masks):
     """Convert binary mask to indices keeping it's orders.

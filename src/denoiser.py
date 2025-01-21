@@ -51,7 +51,7 @@ class Denoiser(nn.Module):
         self.conditioning_scheme = conditioning_scheme
         self.num_repeat = num_repeat
         
-        self.cls_embed = nn.Embedding(num_classes, z_channels)
+        self.cls_embed = nn.Embedding(num_classes, width)
         
         self.net = create_denising_model(
             model_type=model_type,
@@ -108,7 +108,7 @@ class Denoiser(nn.Module):
         loss = loss_dict['loss']
         return loss.mean()  # mean over the batch
     
-    def sample(self, input_shape, cls_label, z=None, temperature=1.0, cfg=1.0):
+    def sample(self, input_shape, cls_label, z=None, mask_indices=None, temperature=1.0, cfg=1.0):
         """Denoising step for sampling.
         Args:
             input_shape (Tuple[int, int, int]): the input shape (C, H, W)
@@ -119,17 +119,17 @@ class Denoiser(nn.Module):
         Returns:
             Tensor: the denoised image
         """
-        z = self.cls_embed(cls_label)  # (B, Z)
+        cls_embed = self.cls_embed(cls_label)  # (B, Z)
         
         if not cfg == 1.0:
             # do classifer free guidance
             noise = torch.randn(z.shape[0] // 2, *input_shape).to(z.device)  # (B//2, C)
             noise = torch.cat([noise, noise], dim=0)  # (B, C)
-            model_kwargs = dict(c=z, cfg_scale=cfg)
+            model_kwargs = dict(c=cls_embed, cfg_scale=cfg)
             sample_fn = self.net.forward_with_cfg
         else:
             noise = torch.randn(z.shape[0], *input_shape).to(z.device)  # (B, C, H, W)
-            model_kwargs = dict(c=z)
+            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward
         
         # sampling loop

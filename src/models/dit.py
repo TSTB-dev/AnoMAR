@@ -10,7 +10,7 @@ import math
 from einops import rearrange
 from timm.models.vision_transformer import PatchEmbed, Attention, Mlp
 
-from models.vision_transformer import PosEmbedding
+from models.vision_transformer import PosEmbedding, get_unmasked_indices
 
 #################################################################################
 #                   Sine/Cosine Positional Embedding Functions                  #
@@ -276,7 +276,7 @@ class DiTBlockWithCrossAttention(nn.Module):
         # Compute conditioning 
         shift_msa, scale_msa, gate_msa, shift_mca, scale_mca, gate_mca, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(9, dim=1)
         # each: (B, C) x 9
-        
+
         # self-attention
         x = x + gate_msa.unsqueeze(1) * self.attn(modulate(self.norm1(x), shift_msa, scale_msa))
         # cross-attention
@@ -348,6 +348,7 @@ class DiT(nn.Module):
         self.y_embedder = LabelEmbedder(num_classes, hidden_size, class_dropout_prob)
         
         num_patches = self.x_embedder.num_patches
+        self.num_patches = num_patches
         # Will use fixed sin-cos embedding:
         if pos_embed is None:
             self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, hidden_size))
@@ -434,16 +435,41 @@ class DiT(nn.Module):
             # x: (B, N, C)
             # We assume this type of input is already patchified image, i.e., MIM model's outputs. 
             x = self.x_embedder_linear(x)
-            x = self.pos_embed(x, apply_indices=mask_indices) if self.inherit_pos_embed is None else self.inherit_pos_embed(x, apply_indices=mask_indices)
+            B, M = mask_indices.size()
+            pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
+            gathered_pos_embed = torch.gather(
+                pos_embed, 1, mask_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
+            )  # (B, M, D)
+            x = x + gathered_pos_embed
+
+            # x = self.pos_embed(x, apply_indices=mask_indices) if self.inherit_pos_embed is None else self.inherit_pos_embed(x, apply_indices=mask_indices)
         else:
             raise ValueError(f"Invalid input shape: {x.shape}")
 
+        # if z is not None:
+        #     # TODO: 
+        #     z = self.z_embedder(z)  # (B, M, D)
+        #     B, M = mask_indices.size()
+        #     pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
+        #     gathered_pos_embed = torch.gather(
+        #         pos_embed, 1, mask_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
+        #     )
+        #     z = z + gathered_pos_embed
+            
         if z is not None:
+            # TODO: 
             z = self.z_embedder(z)  # (B, M, D)
+            unmasked_indices = get_unmasked_indices(mask_indices, self.num_patches)
+            B, M = mask_indices.size()
+            pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
+            gathered_pos_embed = torch.gather(
+                pos_embed, 1, unmasked_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
+            )
+            z = z + gathered_pos_embed
         
         _, N, _ = x.shape
         t = self.t_embedder(t)  # (B, D)
-
+        
         cond = t + c
         if self.conditioning_scheme == 'adaLN':
             # TODO: implement aggregation module for z, current implementation is just average pooling

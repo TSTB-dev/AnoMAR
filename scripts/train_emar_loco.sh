@@ -2,15 +2,15 @@
 
 # GPUリストと対応する設定ファイルのリストを定義
 CONFIG_FILES=(
-  "./configs/exp_emar_ca_vae_loco/loco_emar_breakfast_box.yml"
-  "./configs/exp_emar_ca_vae_loco/loco_emar_juice_bottle.yml"
-  "./configs/exp_emar_ca_vae_loco/loco_emar_pushpins.yml"
-  "./configs/exp_emar_ca_vae_loco/loco_emar_screw_bag.yml"
-  "./configs/exp_emar_ca_vae_loco/loco_emar_splicing_connectors.yml"
+  "./configs/exp_emar_ca_vae_loco_inv/loco_emar_breakfast_box.yml"
+  "./configs/exp_emar_ca_vae_loco_inv/loco_emar_juice_bottle.yml"
+  "./configs/exp_emar_ca_vae_loco_inv/loco_emar_pushpins.yml"
+  "./configs/exp_emar_ca_vae_loco_inv/loco_emar_screw_bag.yml"
+  "./configs/exp_emar_ca_vae_loco_inv/loco_emar_splicing_connectors.yml"
 )
 
 # 最大GPU数を指定
-MAX_GPUS=4
+MAX_GPUS=5
 
 # メモリ使用量の上限 (1GB = 1024MB)
 MEMORY_LIMIT_MB=1024
@@ -18,7 +18,7 @@ MEMORY_LIMIT_MB=1024
 # GPUの空きを待つ関数
 wait_for_free_gpu() {
   while true; do
-    for ((i=0; i<$MAX_GPUS; i++)); do
+    for ((i=3; i<$MAX_GPUS+3; i++)); do
       # i番目のGPUの使用状況（メモリ使用量）を取得
       usage=$(nvidia-smi --query-gpu=memory.used --format=csv,nounits,noheader | sed -n "$((i+1))p")
 

@@ -12,6 +12,9 @@ class ConstantMaskCollator(object):
         mask=None
     ):
         super(ConstantMaskCollator, self).__init__()
+        
+        if not isinstance(input_size, tuple):
+            input_size = (input_size, ) * 2
         self.mask = mask
         self.patch_size = patch_size
         self.height, self.width = input_size[0] // patch_size, input_size[1] // patch_size
@@ -40,7 +43,7 @@ class ConstantMaskCollator(object):
         '''
         B = len(batch)
         collated_batch_org = torch.utils.data.default_collate(batch)
-        collated_masks = self.mask.unsqueeze(0).expand(B, -1)  # (B, M), M: num of masked patches
+        collated_masks = self.mask.unsqueeze(0).expand(B, -1).clone()  # (B, M), M: num of masked patches
         return collated_batch_org, collated_masks    
 
 class RandomMaskCollator(object):
@@ -50,6 +53,9 @@ class RandomMaskCollator(object):
         input_size=(224, 224),
         patch_size=16,
         mask_seed = None,
+        min_ratio= None,
+        max_ratio= None,
+        **kwargs
     ):
         super(RandomMaskCollator, self).__init__()
         if not isinstance(input_size, tuple):
@@ -58,6 +64,11 @@ class RandomMaskCollator(object):
         self.height, self.width = input_size[0] // patch_size, input_size[1] // patch_size
         self.ratio = ratio
         self.mask_seed = mask_seed
+        self.min_ratio = min_ratio
+        self.max_ratio = max_ratio
+        if self.min_ratio is None or self.max_ratio is None:
+            self.min_ratio = self.ratio
+            self.max_ratio = self.ratio
         self._itr_counter = Value('i', -1)  # collator is shared across worker processes (for distributed training)
         
     def step(self):
@@ -84,8 +95,9 @@ class RandomMaskCollator(object):
         g.manual_seed(seed)
         if self.mask_seed is not None:
             g.manual_seed(self.mask_seed)
+        ratio = (self.max_ratio - self.min_ratio) * torch.rand(1, generator=g) + self.min_ratio
         num_patches = self.height * self.width
-        num_keep = int(num_patches * (1. - self.ratio))
+        num_keep = int(num_patches * (1. - ratio))
         
         collated_masks = []
         for _ in range(B):
@@ -204,6 +216,74 @@ class BlockRandomMaskCollator(object):
             collated_masks.append(mask)
         collated_masks = torch.stack(collated_masks, dim=0)
         return collated_batch_org, collated_masks
+
+class SlidingWindowMaskCollator(object):
+    def __init__(
+        self, 
+        input_size=(224, 224),
+        patch_size=16,
+        window_size=2,
+        stride=2,
+        order='raster',
+        **kwargs
+    ):
+        super(SlidingWindowMaskCollator, self).__init__()
+        self.input_size = input_size
+        self.patch_size = patch_size
+        self.window_size = window_size
+        self.stride = stride
+        assert order in ['raster', 'random'], "Order should be either 'raster' or 'random'"
+        self.order = order
+        
+        if not isinstance(input_size, tuple):
+            input_size = (input_size, ) * 2
+        self.height, self.width = input_size[0] // patch_size, input_size[1] // patch_size
+        self._itr_counter = Value('i', -1)
+        
+        self.masks = self._generate_sliding_window_masks()
+        
+    def step(self):
+        i = self._itr_counter
+        with i.get_lock():
+            i.value += 1
+            v = i.value
+        return v
+    
+    def _generate_sliding_window_masks(self):
+        num_windows_h = (self.height - self.window_size) // self.stride + 1
+        num_windows_w = (self.width - self.window_size) // self.stride + 1
+        
+        masks = []
+        for i in range(num_windows_h):
+            for j in range(num_windows_w):
+                mask = torch.zeros(self.height, self.width)
+                mask[i*self.stride:i*self.stride+self.window_size, j*self.stride:j*self.stride+self.window_size] = 1
+                mask = torch.nonzero(mask.view(-1)).squeeze(1)
+                masks.append(mask)
+        masks = torch.stack(masks, dim=0)
+        return masks
+    
+    def __len__(self):
+        return self.masks.size(0)
+    
+    def __call__(self, batch):
+        B = len(batch)
+        collated_batch_org = torch.utils.data.default_collate(batch)
+        
+        seed = self.step()
+        g = torch.Generator()
+        g.manual_seed(seed)
+        
+        if self.order == 'raster':
+            # For testing
+            assert B == self.masks.size(0), f"Number of masks: {self.masks.size(0)} should be equal to batch size: {B}"
+            masks = self.masks
+        else:
+            # For training
+            masks = self.masks[torch.randperm(self.masks.size(0), generator=g)]
+        collated_masks = masks[:B].clone()
+        return collated_batch_org, collated_masks
+    
 
 class CheckerBoardMaskCollator(object):
     def __init__(

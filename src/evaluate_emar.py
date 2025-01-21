@@ -102,7 +102,7 @@ def main(args):
     else:
         backbone = get_backbone(**config['backbone'])
     backbone.to(device).eval()
-    
+
     backbone_embed_dim = config['backbone']['embed_dim']
     backbone_stride = config['backbone']['stride']
     img_size = config['data']['img_size']
@@ -110,7 +110,6 @@ def main(args):
     mim_in_sh = (backbone_embed_dim, img_size // backbone_stride, img_size // backbone_stride)
     
     # build mim model
-    config['diffusion']['z_channels'] = config['mim']['out_channels']
     denoiser: Denoiser = get_denoiser(**config['diffusion'], input_shape=mim_in_sh)
     model: EncoderMAR = create_emar_model(denoiser, **config['mim'])
     model_ckpt = torch.load(args.model_ckpt, map_location='cpu', weights_only=True)
@@ -127,7 +126,6 @@ def main(args):
     # build mask collator
     mask_strategy = config['data']['mask']['strategy']
     mask_ratio = config['data']['mask']['ratio']
-
     if mask_strategy == "random":
         mask_collator = RandomMaskCollator(
             ratio=mask_ratio, input_size=mim_in_sh[1], patch_size=patch_size
@@ -191,7 +189,7 @@ def main(args):
             
         # 1. MIM Prediction 
         latents = encode_images(images)
-        outputs = model.masked_forward(latents, mask)  # (B)
+        outputs = model.masked_forward(latents, mask, enc_inv_mask=False, shortcut=config['mim']['shortcut'])  # (B)
         cond, target = outputs['enc_features'], outputs['targets']  # (B, V, c*p*p)
         
         # 2. Denoising on masked tokens
@@ -290,7 +288,7 @@ def main(args):
         
         # 1. MIM Prediction
         latents = encode_images(images)
-        outputs = model.masked_forward(latents, mask)  # (B)
+        outputs = model.masked_forward(latents, mask, enc_inv_mask=False, shortcut=config['mim']['shortcut'])
         cond, target = outputs['enc_features'], outputs['targets']  # (B, M, c*p*p)
         
         # 2. Denoising on masked tokens
@@ -323,12 +321,12 @@ def main(args):
             mask = F.interpolate(mask, size=(img_size, img_size), mode='nearest')  # (B, 1, H, W)
             masked_imgs = convert2image(postprocess(images) * (1 - mask))  # (B, H, W, C)
             pred_imgs = convert2image(postprocess(pred_imgs)) # (B*K, H, W, C)
-            pred_imgs = pred_imgs.reshape(-1, num_samples, *pred_imgs.shape[1:])[0]
+            pred_imgs = pred_imgs.reshape(-1, num_samples, *pred_imgs.shape[1:])[2]
             anom_map = convert2image(anomaly_map(pred_latents, latents))
             
             sample_dict[f'anom_{i}'] = {
                 'images': org_imgs[0], # (H, W, C)
-                'masked_images': masked_imgs[0],  
+                'masked_images': masked_imgs[2], 
                 'pred_images': pred_imgs,
                 'gt_masks': convert2image(gt_masks)[0],  # (H, W)
                 'labels': 'anomalous',
