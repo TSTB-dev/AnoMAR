@@ -75,7 +75,7 @@ class Denoiser(nn.Module):
         self.train_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing="", noise_schedule='linear', learn_sigma=False, rescale_learned_sigmas=False)
         self.sample_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing=num_sampling_steps, noise_schedule='linear')
         
-    def forward(self, target, cls_label, z=None, mask_indices=None):
+    def forward(self, target, cls_label=None, z=None, mask_indices=None):
         """Denoising step for training.
         Args:
             target (Tensor): the target image to denoise (B, c, h, w) or (B, N, C)
@@ -96,15 +96,17 @@ class Denoiser(nn.Module):
             mask_indices = torch.repeat_interleave(mask_indices, self.num_repeat, dim=0)  # (B*N, M)
         
         # class embedding
-        cls_embed = self.cls_embed(cls_label)  # (B, Z)
-        cls_embed = torch.repeat_interleave(cls_embed, self.num_repeat, dim=0)  # (B*N, Z)
+        cls_embed = None
+        if cls_label is not None:
+            cls_embed = self.cls_embed(cls_label)  # (B, Z)
+            cls_embed = torch.repeat_interleave(cls_embed, self.num_repeat, dim=0)  # (B*N, Z)
 
         # sample timestep
         t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B*N, )
         
         # denoising
         model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
-        loss_dict = self.train_diffusion.training_losses(self.net, target, t, model_kwargs)  
+        loss_dict = self.train_diffusion.training_losses(self.net, target, t, model_kwargs)
         loss = loss_dict['loss']
         return loss.mean()  # mean over the batch
     
@@ -119,7 +121,9 @@ class Denoiser(nn.Module):
         Returns:
             Tensor: the denoised image
         """
-        cls_embed = self.cls_embed(cls_label)  # (B, Z)
+        cls_embed = None
+        if cls_label is not None:
+            cls_embed = self.cls_embed(cls_label)  # (B, Z)
         
         if not cfg == 1.0:
             # do classifer free guidance
@@ -156,7 +160,7 @@ class Denoiser(nn.Module):
         """
         return self.sample_diffusion.q_sample(x_start, t, noise=noise)
     
-    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor, z = None, mask_indices=None, cfg=1.0, \
+    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor=None, z = None, mask_indices=None, cfg=1.0, \
         sampler: str="org", eta: float = 0.0, temperature: float = 1.0) -> Tensor:
         """Denoise from intermediate state x_t to x_0
         Args:
@@ -174,7 +178,10 @@ class Denoiser(nn.Module):
         """
         assert torch.where(t == t[0], 1, 0).sum() == t.shape[0], "All timesteps must be the same"
 
-        cls_embed = self.cls_embed(cls_label)  # (B, Z)
+        cls_embed = None
+        if cls_label is not None:
+            cls_embed = self.cls_embed(cls_label)  # (B, Z)
+            
         if not cfg == 1.0:
             # do classifer free guidance
             model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)

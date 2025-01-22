@@ -1,0 +1,1 @@
+python3 src/train_icl.py --config_path ./configs/exp_icl_ca_vae_loco/ex_breakfast_box.yml --devices 0 1 2

@@ -504,3 +504,185 @@ class DiT(nn.Module):
         half_eps = uncond_eps + cfg_scale * (cond_eps - uncond_eps)
         eps = torch.cat([half_eps, half_eps], dim=0)
         return torch.cat([eps, rest], dim=1)
+    
+class ICLDiT(nn.Module):
+    """
+    Diffusion Transformer expanded for various conditioning schemes with ICL.
+    """
+    def __init__(
+        self, 
+        input_size=224,
+        patch_size=16, 
+        in_channels=3, 
+        cond_channels=384,
+        hidden_size=384,
+        depth=4,
+        num_heads=8,
+        mlp_ratio=4.,
+        conditioning_scheme='cross_attention',  # one of ['cross_attention', 'self_attention', 'none', 'adaLN]
+        learn_sigma=False,
+        pos_embed: PosEmbedding = None
+    ):
+        super().__init__()
+        self.input_size = input_size
+        self.patch_size = patch_size
+        self.in_channels = in_channels
+        self.cond_channels = cond_channels
+        self.hidden_size = hidden_size
+        self.out_channels = in_channels * 2 if learn_sigma else in_channels
+        self.depth = depth
+        self.num_heads = num_heads
+        self.mlp_ratio = mlp_ratio
+        self.conditioning_scheme = conditioning_scheme
+        self.learn_sigma = learn_sigma
+        
+        self.x_embedder = PatchEmbed(input_size, patch_size, in_channels, hidden_size, bias=True)
+        self.x_embedder_linear = nn.Linear(in_channels, hidden_size, bias=True)
+        self.z_embedder = ConditionEmbedder(cond_channels, hidden_size)
+        self.t_embedder = TimestepEmbedder(hidden_size)
+        
+        num_patches = self.x_embedder.num_patches
+        self.num_patches = num_patches
+        # Will use fixed sin-cos embedding:
+        if pos_embed is None:
+            self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, hidden_size))
+            pos_embed = get_2d_sincos_pos_embed(self.pos_embed.shape[-1], int(self.x_embedder.num_patches ** 0.5))
+            self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+        else:
+            assert pos_embed.shape == (1, num_patches, hidden_size), "pos_embed shape must be (1, N, C)"
+            self.pos_embed = nn.Parameter(pos_embed)
+            
+        # instance embeddings for discriminate different instances
+        # We initialize it with sufficient large values and extract first K tokens as instance embeddings
+        self.instance_embed = nn.Parameter(torch.randn(1, 1000, hidden_size))    
+        
+        self.blocks = nn.ModuleList([
+            DiTBlockWithCrossAttention(hidden_size, num_heads, mlp_ratio=mlp_ratio) if conditioning_scheme == 'cross_attention' else DiTBlock(hidden_size, num_heads, mlp_ratio=mlp_ratio)
+            for _ in range(depth)
+        ])
+        self.final_layer = FinalLayer(hidden_size, patch_size, self.out_channels)
+        
+        self.inherit_pos_embed = None
+        self.initialize_weights()
+
+    def initialize_weights(self):
+        # Initialize transformer layers:
+        def _basic_init(module):
+            if isinstance(module, nn.Linear):
+                torch.nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+        self.apply(_basic_init)
+
+        # Initialize patch_embed like nn.Linear (instead of nn.Conv2d):
+        w = self.x_embedder.proj.weight.data
+        nn.init.xavier_uniform_(w.view([w.shape[0], -1]))
+        nn.init.constant_(self.x_embedder.proj.bias, 0)
+
+        # Initialize timestep embedding MLP:
+        nn.init.normal_(self.t_embedder.mlp[0].weight, std=0.02)
+        nn.init.normal_(self.t_embedder.mlp[2].weight, std=0.02)
+
+        # Zero-out adaLN modulation layers in DiT blocks:
+        for block in self.blocks:
+            nn.init.constant_(block.adaLN_modulation[-1].weight, 0)
+            nn.init.constant_(block.adaLN_modulation[-1].bias, 0)
+
+        # Zero-out output layers:
+        nn.init.constant_(self.final_layer.adaLN_modulation[-1].weight, 0)
+        nn.init.constant_(self.final_layer.adaLN_modulation[-1].bias, 0)
+        nn.init.constant_(self.final_layer.linear.weight, 0)
+        nn.init.constant_(self.final_layer.linear.bias, 0)
+    
+    def unpatchify(self, x):
+        """Convert sequence of tokens into image-like tensor.
+        Args:
+            x (Tensor): tensor of shape (B, N, patch_size*patch_size*in_channels)
+        Returns:
+            Tensor: tensor of shape (B, C, H, W)
+        """
+        C = self.out_channels
+        p = self.x_embedder.patch_size[0]
+        h = w = int(x.shape[1] ** 0.5)
+        assert h * w == x.shape[1]
+        
+        x = rearrange(x, 'b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=w, p1=p, p2=p, c=C)
+        return x
+
+    def forward(self, x, t, z = None, mask_indices=None, **kwargs):
+        """Apply model to an input batch.
+        Args:
+            x (Tensor): masked target image (B, M, c)
+            t (Tensor): timestep tensor (B, )
+            z (Tensor): context images (B, B-1, N, c)
+            mask (Tensor): mask tensor (B, N), specifying which tokens are masked
+        Returns:
+            Tensor: output tensor (B, M, C)
+        """
+        # Process masked target image
+        x = self.x_embedder_linear(x)
+        B, M = mask_indices.size()
+        pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
+        gathered_pos_embed = torch.gather(
+            pos_embed, 1, mask_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
+        )  # (B, M, D)
+        x = x + gathered_pos_embed
+        
+        # Process context images
+        z = rearrange(z, 'b b1 n c -> (b b1) n c')
+        z = self.z_embedder(z)  # (B*B-1, N, D)
+        z = rearrange(z, '(b b1) n d -> b b1 n d', b=B, b1=B-1)  # (B, B-1, N, D)
+        instance_embed = self.instance_embed.expand(B, -1, -1)[:, :B-1].unsqueeze(2)  # (B, B-1, 1, D)
+        pos_embed = self.pos_embed.expand(B-1, -1, -1).unsqueeze(0)  # (1, B-1, N, D)
+        z = z + instance_embed
+        z = z + pos_embed 
+        z = rearrange(z, 'b b1 n d -> b (b1 n) d')  # (B, (B-1)*N, D)
+            
+        # if z is not None:
+        #     # TODO: 
+        #     z = self.z_embedder(z)  # (B, M, D)
+        #     unmasked_indices = get_unmasked_indices(mask_indices, self.num_patches)
+        #     B, M = mask_indices.size()
+        #     pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
+        #     gathered_pos_embed = torch.gather(
+        #         pos_embed, 1, unmasked_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
+        #     )
+        #     z = z + gathered_pos_embed
+        
+        _, N, _ = x.shape
+        t = self.t_embedder(t)  # (B, D)
+        
+        cond = t 
+        if self.conditioning_scheme == 'adaLN':
+            # TODO: implement aggregation module for z, current implementation is just average pooling
+            z = z.mean(dim=1)  # (B, D)
+            assert z.shape[1] == t.shape[1], "conditioning tensor must have the same channel dimension with timeembedding"
+            cond = cond + z
+            z = None
+        
+        for block in self.blocks:
+            x = block(x, cond, z)  # (B, M, C)
+        
+        x = self.final_layer(x, cond)  # (B, N, C)
+        if self.conditioning_scheme == 'none':
+            return self.unpatchify(x)  # (B, C, H, W)
+        else:
+            return x  # (B, N, C)
+        
+    def forward_with_cfg(self, x, t, y, cfg_scale):
+        """
+        Forward pass of DiT, but also batches the unconditional forward pass for classifier-free guidance.
+        """
+        # https://github.com/openai/glide-text2im/blob/main/notebooks/text2im.ipynb
+        half = x[: len(x) // 2]
+        combined = torch.cat([half, half], dim=0)
+        model_out = self.forward(combined, t, y)
+        # For exact reproducibility reasons, we apply classifier-free guidance on only
+        # three channels by default. The standard approach to cfg applies it to all channels.
+        # This can be done by uncommenting the following line and commenting-out the line following that.
+        # eps, rest = model_out[:, :self.in_channels], model_out[:, self.in_channels:]
+        eps, rest = model_out[:, :3], model_out[:, 3:]
+        cond_eps, uncond_eps = torch.split(eps, len(eps) // 2, dim=0)
+        half_eps = uncond_eps + cfg_scale * (cond_eps - uncond_eps)
+        eps = torch.cat([half_eps, half_eps], dim=0)
+        return torch.cat([eps, rest], dim=1)

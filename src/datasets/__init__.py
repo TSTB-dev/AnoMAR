@@ -4,8 +4,10 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from .mnist import MNISTWrapper
-from .mvtec_ad import MVTecAD
-from .mvtec_loco import MVTecLOCO
+from .mvtec_ad import MVTecAD, AD_CLASSES
+from .mvtec_loco import MVTecLOCO, LOCO_CLASSES
+
+import random
 
 def build_transforms(img_size, transform_type):
     # standarization
@@ -43,6 +45,32 @@ def build_dataset(*, dataset_name: str, data_root: str, train: bool, img_size: i
             transform=build_transforms(img_size, transform_type), is_mask=True, cls_label=True, **kwargs)
     else:
         raise ValueError(f"Invalid dataset: {dataset_name}")
+    
+class ICLDataLoader:
+    """
+    ICL DataLoader collate batch from one class dataset, and iterate over all classes. 
+    """
+    def __init__(self, dataset_list, collate_fn, batch_size):
+        self.dataset_list = dataset_list
+        self.collate_fn = collate_fn
+        self.num_classes = len(dataset_list)
+        self.batch_size = self.batch_size
+        
+        self.dataloader_list = [iter(DataLoader(ds, batch_size, shuffle=True, collate_fn=collate_fn)) for ds in dataset_list]
+
+    def __next__(self):
+        # choose a random class
+        class_idx = random.randint(0, self.num_classes - 1)
+        try:
+            data = next(self.dataloader_list[class_idx])
+        except StopIteration:
+            self.dataloader_list[class_idx] = iter(DataLoader(self.dataset_list[class_idx], self.batch_size, shuffle=True, collate_fn=self.collate_fn))
+            data = next(self.dataloader_list[class_idx])
+        return data
+    
+    def __iter__(self):
+        return self            
+        
 
 class EvalDataLoader:
     def __init__(self, dataset, num_repeat, collate_fn, shared_masks=None):

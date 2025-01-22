@@ -1,12 +1,11 @@
 from .mlp import SimpleMLPAdaLN
 from .unet import Unet
-from .dit import DiT
+from .dit import DiT, ICLDiT
 from .vae import AutoencoderKL
 from .mim import mim_tiny, mim_small, mim_base, mim_large, mim_huge, mim_gigant, predictor_tiny, \
     predictor_small, predictor_base, predictor_large, predictor_huge, predictor_gigant, PREDICTOR_SUPPORTEED_MODELS, MIM_SUPPORTEED_MODELS, MaskedImageModelingModel, EncoderDecoerMAR, \
-        mar_tiny, mar_small, mar_base, mar_large, mar_huge, mar_gigant, emar_tiny, emar_small, emar_base, emar_large, emar_huge, emar_gigant, EMAR_SUPPORTEED_MODELS, EncoderMAR
+        mar_tiny, mar_small, mar_base, mar_large, mar_huge, mar_gigant, emar_tiny, emar_small, emar_base, emar_large, emar_huge, emar_gigant, EMAR_SUPPORTEED_MODELS, EncoderMAR, get_unmasked_indices
 from . import mim
-
 def create_emar_model(denoiser, **kwargs):
     model_type = kwargs['model_type']
     assert model_type in MIM_SUPPORTEED_MODELS, f"Model {model_type} not supported"
@@ -120,6 +119,20 @@ def create_denising_model(
             mlp_ratio=mlp_ratio,
             class_dropout_prob=class_dropout_prob,
             num_classes=num_classes,
+            learn_sigma=learn_sigma,
+            conditioning_scheme=conditioning_scheme,
+            pos_embed=pos_embed
+        )
+    elif model_type == "icldit":
+        return ICLDiT(
+            input_size=in_res,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            cond_channels=z_channels,
+            hidden_size=model_channels,
+            depth=num_blocks,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
             learn_sigma=learn_sigma,
             conditioning_scheme=conditioning_scheme,
             pos_embed=pos_embed
