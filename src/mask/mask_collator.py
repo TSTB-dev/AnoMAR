@@ -118,6 +118,7 @@ class BlockRandomMaskCollator(object):
         scale_min: float = 0.1,
         scale_max: float = 0.4,
         mask_seed = None,
+        **kwargs
     ):
         super(BlockRandomMaskCollator, self).__init__()
         self.input_size = input_size

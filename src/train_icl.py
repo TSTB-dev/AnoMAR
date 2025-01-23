@@ -281,7 +281,7 @@ if __name__ == "__main__":
     mp.set_start_method('spawn', True)
     
     processes = []
-    for rank in args.devices:
+    for rank in range(num_gpus):
         ds_indices = [i for i in range(len(ds_list)) if i % num_gpus == rank]
         p = mp.Process(target=main, args=(rank, config, num_gpus, args.devices, ds_list, ds_indices))
         p.start()
