@@ -110,7 +110,7 @@ class Denoiser(nn.Module):
         loss = loss_dict['loss']
         return loss.mean()  # mean over the batch
     
-    def sample(self, input_shape, cls_label, z=None, mask_indices=None, temperature=1.0, cfg=1.0):
+    def sample(self, input_shape, cls_label=None, z=None, mask_indices=None, temperature=1.0, cfg=1.0):
         """Denoising step for sampling.
         Args:
             input_shape (Tuple[int, int, int]): the input shape (C, H, W)

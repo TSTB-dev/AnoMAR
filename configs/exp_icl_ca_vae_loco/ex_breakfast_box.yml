@@ -45,7 +45,7 @@ optimizer:
   weight_decay: 0.000001
   scheduler_type: 'warmup_cosine'
   warmup_epochs: 40
-  num_epochs: 200
+  num_epochs: 1000
   grad_clip: 1.0
 logging:
   log_interval: 10

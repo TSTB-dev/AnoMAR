@@ -629,11 +629,12 @@ class ICLDiT(nn.Module):
         x = x + gathered_pos_embed
         
         # Process context images
+        B, K, N, C = z.shape
         z = rearrange(z, 'b b1 n c -> (b b1) n c')
         z = self.z_embedder(z)  # (B*B-1, N, D)
-        z = rearrange(z, '(b b1) n d -> b b1 n d', b=B, b1=B-1)  # (B, B-1, N, D)
-        instance_embed = self.instance_embed.expand(B, -1, -1)[:, :B-1].unsqueeze(2)  # (B, B-1, 1, D)
-        pos_embed = self.pos_embed.expand(B-1, -1, -1).unsqueeze(0)  # (1, B-1, N, D)
+        z = rearrange(z, '(b b1) n d -> b b1 n d', b=B, b1=K)  # (B, B-1, N, D)
+        instance_embed = self.instance_embed.expand(B, -1, -1)[:, :K].unsqueeze(2)  # (B, B-1, 1, D)
+        pos_embed = self.pos_embed.expand(K, -1, -1).unsqueeze(0)  # (1, B-1, N, D)
         z = z + instance_embed
         z = z + pos_embed 
         z = rearrange(z, 'b b1 n d -> b (b1 n) d')  # (B, (B-1)*N, D)
