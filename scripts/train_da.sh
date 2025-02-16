@@ -4,7 +4,7 @@ python src/train_da.py \
     --batch_size 16 \
     --lr 0.01 \
     --diffusion_config ./config_bottle.yaml \
-    --diffusion_ckpt ./ddad_models/leather \
+    --diffusion_ckpt ./ddad_models/bottle \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
@@ -16,88 +16,88 @@ python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_cable.yaml \
-    --diffusion_ckpt ./ddad_models/cable \
+    --diffusion_config ./config_zipper.yaml \
+    --diffusion_ckpt ./ddad_models/zipper \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/cable & \
+    --save_dir ./results_da/zipper & \
 
 export CUDA_VISIBLE_DEVICES=2
 python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_capsule.yaml \
-    --diffusion_ckpt ./ddad_models/capsule \
+    --diffusion_config ./config_wood.yaml \
+    --diffusion_ckpt ./ddad_models/wood \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/capsule & \
+    --save_dir ./results_da/wood & \
 
 export CUDA_VISIBLE_DEVICES=3
 python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_carpet.yaml \
-    --diffusion_ckpt ./ddad_models/carpet \
+    --diffusion_config ./config_transistor.yaml \
+    --diffusion_ckpt ./ddad_models/transistor \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/carpet & \
+    --save_dir ./results_da/transistor & \
 
 export CUDA_VISIBLE_DEVICES=4
 python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_grid.yaml \
-    --diffusion_ckpt ./ddad_models/grid \
+    --diffusion_config ./config_toothbrush.yaml \
+    --diffusion_ckpt ./ddad_models/toothbrush \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/grid & \
+    --save_dir ./results_da/toothbrush & \
 
 export CUDA_VISIBLE_DEVICES=5
 python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_hazelnut.yaml \
-    --diffusion_ckpt ./ddad_models/hazelnut \
+    --diffusion_config ./config_tile.yaml \
+    --diffusion_ckpt ./ddad_models/tile \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/hazelnut & \
+    --save_dir ./results_da/tile & \
 
 export CUDA_VISIBLE_DEVICES=6
 python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_leather.yaml \
-    --diffusion_ckpt ./ddad_models/leather \
+    --diffusion_config ./config_screw.yaml \
+    --diffusion_ckpt ./ddad_models/screw \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/leather & \
+    --save_dir ./results_da/screw & \
 
 export CUDA_VISIBLE_DEVICES=7
 python src/train_da.py \
     --num_epochs 20 \
     --batch_size 16 \
     --lr 0.01 \
-    --diffusion_config ./config_metal_nut.yaml \
-    --diffusion_ckpt ./ddad_models/metal_nut \
+    --diffusion_config ./config_pill.yaml \
+    --diffusion_ckpt ./ddad_models/pill \
     --backbone_name enet \
     --mask_strategy checkerboard \
     --num_inference_steps 100 \
     --num_samples 1 \
-    --save_dir ./results_da/metal_nut & \
+    --save_dir ./results_da/pill & \
