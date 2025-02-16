@@ -98,7 +98,7 @@ class RandomMaskCollator(object):
         else:
             raise ValueError("Invalid scheduler")
         
-    def generate_random_mask(self, num_masks):
+    def collate_all_masks(self, num_masks):
         """Generate random mask with random number of masked patches
         Args:
             num_masks: number of masked patches
@@ -118,7 +118,7 @@ class RandomMaskCollator(object):
         m.scatter_(1, masks, 1)
         
         return m
-    
+
     def __call__(self, batch):
         '''
         Create random masks for each sample in the batch
@@ -152,6 +152,80 @@ class RandomMaskCollator(object):
             collated_masks.append(m)
         collated_masks = torch.stack(collated_masks, dim=0)  # (B, M), M: num of masked patches
         return collated_batch_org, collated_masks
+
+class PatchRandomMaskCollator(object):
+    def __init__(
+        self,
+        ratio=0.75, # ratio of masked patches
+        input_size=(224, 224),
+        patch_size=16,
+        mask_seed = None,
+        min_ratio= None,
+        max_ratio= None,
+        schedule = "const",
+        total_steps = 2000,
+        **kwargs
+    ):
+        super(PatchRandomMaskCollator, self).__init__()
+        if not isinstance(input_size, tuple):
+            input_size = (input_size, ) * 2
+        self.patch_size = patch_size
+        self.height, self.width = input_size[0], input_size[1]
+        self.ratio = ratio
+        self.mask_seed = mask_seed
+        self.min_ratio = min_ratio
+        self.max_ratio = max_ratio
+        if self.min_ratio is None or self.max_ratio is None:
+            self.min_ratio = self.ratio
+            self.max_ratio = self.ratio
+        self._itr_counter = Value('i', -1)  # collator is shared across worker processes (for distributed training)
+        self.scheduler = schedule
+        self.step_cout = 0
+        self.total_steps = total_steps
+        self.current_ratio = self.ratio
+        
+    def step(self):
+        i = self._itr_counter
+        with i.get_lock():
+            i.value += 1
+            v = i.value
+        return v
+        
+    def collate_all_masks(self, num_masks):
+        """Generate random mask with random number of masked patches
+        Args:
+            num_masks: number of masked patches
+        Returns:
+            mask: random mask, (B, N)
+        """
+        ratio = self.current_ratio
+        num_patches = (self.height // self.patch_size) * (self.width // self.patch_size)
+        num_keep = int(num_patches * (1. - ratio))
+        
+        pmasks = []
+        for _ in range(num_masks):
+            m = torch.randperm(num_patches)[num_keep:]
+            m = m.sort().values
+            pmasks.append(m)
+        pmasks = torch.stack(pmasks, dim=0)  # (B, N)
+        pm = torch.zeros(len(pmasks), num_patches)
+        pm.scatter_(1, pmasks, 1)
+        
+        # Convert patch-level masks to pixel-level masks
+        masks = []
+        for i in range(num_masks):
+            mask = torch.zeros(self.height, self.width)
+            for j in range(num_patches):
+                y = j // (self.width // self.patch_size)
+                x = j % (self.width // self.patch_size)
+                mask[y*self.patch_size:(y+1)*self.patch_size, x*self.patch_size:(x+1)*self.patch_size] = pm[i, j]
+            mask = torch.nonzero(mask.view(-1)).squeeze(1)
+            masks.append(mask)
+        masks = torch.stack(masks, dim=0)  # (B, N)
+        m = torch.zeros(len(masks), self.height * self.width)
+        m.scatter_(1, masks, 1)
+        
+        return m
 
 class BlockRandomMaskCollator(object):
     def __init__(
@@ -579,16 +653,25 @@ class CheckerBoardMaskCollator(object):
 if __name__ == '__main__':
     # collator = RandomMaskCollator(ratio=0.75, input_size=(224, 224), patch_size=16)
     # collator = BlockRandomMaskCollator(input_size=(224, 224), patch_size=16, mask_ratio=0.75, aspect_min=0.75, aspect_max=1.5, scale_min=0.1, scale_max=0.4)
-    collator = CheckerBoardMaskCollator(input_size=(256,256), patch_size=1, min_divisor=2, max_divisor=2)
-    all_masks = collator.collate_all_masks()
+    # collator = CheckerBoardMaskCollator(input_size=(256,256), patch_size=1, min_divisor=2, max_divisor=2)
+    # all_masks = collator.collate_all_masks()
+    # print(all_masks.size())
+    # # save first mask for visualization
+    # mask = all_masks[-1]
+    # mask = mask.view(collator.height, collator.width).float()
+    # import matplotlib.pyplot as plt
+    # plt.imsave("checkerboard_mask.png", mask, cmap='gray')
+    # for i in range(len(all_masks)):
+    #     mask = all_masks[i]
+    #     mask = mask.view(collator.height, collator.width).float()
+    #     plt.imsave(f"checkerboard_mask_{i}.png", mask, cmap='gray')
+    
+    collator = PatchRandomMaskCollator(ratio=0.75, input_size=256, patch_size=16)
+    all_masks = collator.collate_all_masks(4)
     print(all_masks.size())
     # save first mask for visualization
     mask = all_masks[-1]
     mask = mask.view(collator.height, collator.width).float()
     import matplotlib.pyplot as plt
-    plt.imsave("checkerboard_mask.png", mask, cmap='gray')
-    for i in range(len(all_masks)):
-        mask = all_masks[i]
-        mask = mask.view(collator.height, collator.width).float()
-        plt.imsave(f"checkerboard_mask_{i}.png", mask, cmap='gray')
+    plt.imsave("patch_mask.png", mask, cmap='gray')
     

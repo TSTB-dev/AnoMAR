@@ -60,8 +60,8 @@ def main(args):
     vae_embed_dim = config['vae']['embed_dim']
     vae_stride = config['vae']['stride']
     img_size = config['data']['img_size']
-    # diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
-    diff_in_sh = (3, img_size, img_size)
+    diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
+    # diff_in_sh = (3, img_size, img_size)
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     ema_decay = config['diffusion']['ema_decay']
@@ -93,11 +93,11 @@ def main(args):
             labels = labels.to(device)
             
             # # vae encode
-            # with torch.no_grad():
-            #     posterior = vae.encode(img)  # (B, c, h, w)
-            #     x = posterior.sample().mul_(0.2325)  # (B, c, h, w)
+            with torch.no_grad():
+                posterior = vae.encode(img)  # (B, c, h, w)
+                x = posterior.sample().mul_(0.2325)  # (B, c, h, w)
             
-            x = img
+            # x = img
             # forward
             # img = _process_inputs(img)
             loss = model(x, labels)  
@@ -105,6 +105,9 @@ def main(args):
             # backward
             optimizer.zero_grad()
             loss.backward()
+            
+            if config['optimizer']['clip_grad']:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), config['optimizer']['clip_grad'])
             optimizer.step()
             
             # update ema

@@ -31,7 +31,7 @@ from models import create_vae, AutoencoderKL, create_mar_model, EncoderDecoerMAR
 from backbones import get_backbone
 from denoiser import get_denoiser, Denoiser
 from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, ConstantMaskCollator, SlidingWindowMaskCollator, \
-    indices_to_mask, mask_to_indices
+    indices_to_mask, mask_to_indices, PatchRandomMaskCollator
 
 def parser_args():
     parser = argparse.ArgumentParser(description='AnoMAR Sampling')
@@ -194,7 +194,7 @@ def main(args):
         feature_extractor.to(device).eval()
         
     # build mask collator
-    mask_strategy = "checkerboard"
+    mask_strategy = "prandom"
     mask_ratio = 0.75
 
     if mask_strategy == "random":
@@ -228,12 +228,16 @@ def main(args):
         )
         args.num_masks = len(mask_collator)
         print(f"For sliding window mask, num_masks is overrided to {args.num_masks}")
+    elif mask_strategy == "prandom":
+        mask_collator = PatchRandomMaskCollator(
+            input_size=in_sh[1], patch_size=16, mask_ratio=mask_ratio
+        )
     else:
         raise ValueError(f"Invalid mask strategy: {mask_strategy}")
     
     normal_loader = DataLoader(normal_dataset, args.batch_size, shuffle=False, pin_memory=True, num_workers=4, drop_last=False)
     # masks = mask_collator.generate_random_mask(args.num_masks)  # (N, M)
-    masks = mask_collator.collate_all_masks()  # (N, M)
+    masks = mask_collator.collate_all_masks(args.num_masks)  # (N, M)
     args.num_masks = len(masks)
     
     def encode_images(x):
