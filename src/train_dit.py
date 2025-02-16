@@ -19,6 +19,11 @@ from utils import get_optimizer, get_lr_scheduler
 from denoiser import get_denoiser, Denoiser
 from models import create_vae, AutoencoderKL
 
+import wandb
+from dotenv import load_dotenv
+load_dotenv()
+wandb.login(key=os.getenv("WANDB_API_KEY"))
+
 def parse_args():
     parser = argparse.ArgumentParser(description="AnoMAR Training")
     
@@ -38,9 +43,11 @@ def main(args):
             except yaml.YAMLError as exc:
                 print(exc)
         return config
-
+    
     config = load_config(args.config_path)
     pprint(config)
+    # create wandb project
+    wandb.init(project="AnoMAR", entity="shuns71", config=config)
     
     # set seed
     seed = config['meta']['seed']
@@ -106,8 +113,8 @@ def main(args):
             optimizer.zero_grad()
             loss.backward()
             
-            if config['optimizer']['clip_grad']:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), config['optimizer']['clip_grad'])
+            if config['optimizer']['grad_clip']:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), config['optimizer']['grad_clip'])
             optimizer.step()
             
             # update ema
@@ -117,6 +124,7 @@ def main(args):
             if i % config["logging"]["log_interval"] == 0:
                 print(f"Epoch {epoch}, Iter {i}, Loss {loss.item()}")      
                 tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader) + i)  
+                wandb.log({"Loss": loss.item()})
                 
                 if config["logging"]["save_images"]:
                     save_images(model_ema, vae, tb_writer, epoch, i, device)
@@ -131,7 +139,7 @@ def main(args):
         if config['optimizer']['scheduler_type'] == 'none':
             pass
         else:
-            print(f"Epoch {epoch}: LR {scheduler.get_last_lr()}, Loss {loss.item()}")
+            # print(f"Epoch {epoch}: LR {scheduler.get_last_lr()}, Loss {loss.item()}")
             scheduler.step()
         
     print("Training is done!")
