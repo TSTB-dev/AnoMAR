@@ -5,7 +5,8 @@ ad_dit_d8w768/
 weights/
 debug/
 ddad_models/
-
+wandb/
+results_*/
 
 
 # Byte-compiled / optimized / DLL files

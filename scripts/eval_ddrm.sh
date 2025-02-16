@@ -1,65 +1,65 @@
 # # # bottle  cable  capsule  carpet  grid  hazelnut  leather  metal_nut  pill  bottle  tile  toothbrush  transistor  wood  zipper
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/bottle \
-    --model_ckpt ./ddad_models/bottle \
-    --config_path ./results/ad_unet_vae_rot/bottle/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 1 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/bottle \
+#     --model_ckpt ./ddad_models/bottle \
+#     --config_path ./results/ad_unet_vae_rot/bottle/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/cable \
+#     --model_ckpt ./ddad_models/cable \
+#     --config_path ./results/ad_unet_vae_rot/cable/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_latent/capsule \
+#     --model_ckpt ./ddad_models/capsule \
+#     --config_path ./results/ad_unet_vae_latent/capsule/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
 export CUDA_VISIBLE_DEVICES=4
 python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/cable \
-    --model_ckpt ./ddad_models/cable \
-    --config_path ./results/ad_unet_vae_rot/cable/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_latent/capsule \
-    --model_ckpt ./ddad_models/capsule \
-    --config_path ./results/ad_unet_vae_latent/capsule/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
+    --num_masks 1 \
     --num_samples 1 \
     --num_inference_steps 100 \
     --num_iterations 1 \
@@ -76,214 +76,214 @@ python src/evaluate_ddrm.py \
     --batch_size 8 \
     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/grid \
-    --model_ckpt ./ddad_models/grid \
-    --config_path ./results/ad_unet_vae_rot/grid/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/grid \
+#     --model_ckpt ./ddad_models/grid \
+#     --config_path ./results/ad_unet_vae_rot/grid/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/hazelnut \
-    --model_ckpt ./ddad_models/hazelnut \
-    --config_path ./results/ad_unet_vae_rot/hazelnut/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/hazelnut \
+#     --model_ckpt ./ddad_models/hazelnut \
+#     --config_path ./results/ad_unet_vae_rot/hazelnut/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/leather \
-    --model_ckpt ./ddad_models/leather \
-    --config_path ./results/ad_unet_vae_rot/leather/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 1 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/leather \
+#     --model_ckpt ./ddad_models/leather \
+#     --config_path ./results/ad_unet_vae_rot/leather/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/metal_nut \
-    --model_ckpt ./ddad_models/metal_nut \
-    --config_path ./results/ad_unet_vae_rot/metal_nut/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/metal_nut \
+#     --model_ckpt ./ddad_models/metal_nut \
+#     --config_path ./results/ad_unet_vae_rot/metal_nut/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/pill \
-    --model_ckpt ./ddad_models/pill \
-    --config_path ./results/ad_unet_vae_rot/pill/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/pill \
+#     --model_ckpt ./ddad_models/pill \
+#     --config_path ./results/ad_unet_vae_rot/pill/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/screw \
-    --model_ckpt ./ddad_models/screw \
-    --config_path ./results/ad_unet_vae_rot/screw/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/screw \
+#     --model_ckpt ./ddad_models/screw \
+#     --config_path ./results/ad_unet_vae_rot/screw/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/tile \
-    --model_ckpt ./ddad_models/tile \
-    --config_path ./results/ad_unet_vae_rot/tile/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 30 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/tile \
+#     --model_ckpt ./ddad_models/tile \
+#     --config_path ./results/ad_unet_vae_rot/tile/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 30 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/toothbrush \
-    --model_ckpt ./ddad_models/toothbrush \
-    --config_path ./results/ad_unet_vae_rot/toothbrush/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/toothbrush \
+#     --model_ckpt ./ddad_models/toothbrush \
+#     --config_path ./results/ad_unet_vae_rot/toothbrush/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/transistor \
-    --model_ckpt ./ddad_models/transistor \
-    --config_path ./results/ad_unet_vae_rot/transistor/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/transistor \
+#     --model_ckpt ./ddad_models/transistor \
+#     --config_path ./results/ad_unet_vae_rot/transistor/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/wood \
-    --model_ckpt ./ddad_models/wood \
-    --config_path ./results/ad_unet_vae_rot/wood/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/wood \
+#     --model_ckpt ./ddad_models/wood \
+#     --config_path ./results/ad_unet_vae_rot/wood/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddrm.py \
-    --num_masks 4 \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --num_iterations 1 \
-    --quant_thresh 0.8 \
-    --recon_space feature \
-    --aggregation mean \
-    --eta 0.85 \
-    --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/zipper \
-    --model_ckpt ./ddad_models/zipper \
-    --config_path ./results/ad_unet_vae_rot/zipper/config.yaml \
-    --device cuda \
-    --save_images \
-    --batch_size 8 \
-    --sample_indices 0 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 4 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/zipper \
+#     --model_ckpt ./ddad_models/zipper \
+#     --config_path ./results/ad_unet_vae_rot/zipper/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
 
 # ============
 

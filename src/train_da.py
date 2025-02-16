@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 import torch
-import torch.nn.functional as F
+import torch.torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
@@ -114,8 +114,14 @@ def main(args):
     backbone = get_backbone(**model_kwargs)
     backbone.to(device)
     
-    backbone_proj = torch.nn.Conv2d(272, 272, kernel_size=1, bias=True)
-    
+    # backbone_proj = torch.torch.nn.Conv2d(272, 272, kernel_size=1, bias=True)
+    backbone_proj = torch.nn.Sequential(
+        torch.nn.Conv2d(272, 64, kernel_size=1, bias=True),
+        torch.nn.ReLU(inplace=True),
+        torch.nn.Conv2d(64, 64, kernel_size=1, bias=True),
+        torch.nn.ReLU(inplace=True),
+        torch.nn.Conv2d(64, 272, kernel_size=1, bias=True)
+    )
     backbone_proj.to(device)
     
     mask_strategy = args.mask_strategy

@@ -194,7 +194,7 @@ def main(args):
         feature_extractor.to(device).eval()
         
     # build mask collator
-    mask_strategy = "prandom"
+    mask_strategy = "checkerboard"
     mask_ratio = 0.75
 
     if mask_strategy == "random":
@@ -237,7 +237,7 @@ def main(args):
     
     normal_loader = DataLoader(normal_dataset, args.batch_size, shuffle=False, pin_memory=True, num_workers=4, drop_last=False)
     # masks = mask_collator.generate_random_mask(args.num_masks)  # (N, M)
-    masks = mask_collator.collate_all_masks(args.num_masks)  # (N, M)
+    masks = mask_collator.collate_all_masks()  # (N, M)
     args.num_masks = len(masks)
     
     def encode_images(x):
@@ -278,6 +278,13 @@ def main(args):
         return anom_map
 
     num_patches = in_sh[1] * in_sh[2]
+    
+    ## ===
+    adapter_ckpt = "/home/haselab/projects/sakai/AnoMAR/AnoMAR/results_da/backbone_proj.pth"
+    adapter = torch.nn.Conv2d(272, 272, kernel_size=1, bias=True)
+    results = adapter.load_state_dict(torch.load(adapter_ckpt))
+    print(f"🐦‍🔥Adapter loaded: {results}")
+    adapter = adapter.to(device).eval()
     
     # Evaluation on normal samples
     print("Evaluating on normal samples")
@@ -382,6 +389,7 @@ def main(args):
             decoded_images = pred_latents_map
             decoded_images_org = x_org
             features = feature_extractor(decoded_images)  # (B*K, c, h, w)
+            features = features + adapter(features)
             features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
             anom_map = anomaly_map(features, features_org)
             # anom_map = feature_distance(decoded_images, decoded_images_org, feature_extractor, mode='cosine')
@@ -534,6 +542,7 @@ def main(args):
             # anom_map = rearrange(anom_map, '(b nm ns) h w -> b nm ns h w', b=bs, nm=args.num_masks, ns=args.num_samples)
             # anom_map = torch.min(anom_map, dim=2).values  # (B, nm, h, w)
             features = feature_extractor(decoded_images)
+            features = features + adapter(features)
             features_org = feature_extractor(decoded_images_org)
             anom_map = anomaly_map(features, features_org)
             anom_map = rearrange(anom_map, '(b nm ns) h w -> b nm ns h w', b=bs, nm=args.num_masks, ns=args.num_samples)
