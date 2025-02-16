@@ -24,6 +24,7 @@ import logging
 from datasets import build_dataset, AD_CLASSES, LOCO_CLASSES, ICLDataLoader
 from utils import get_optimizer, get_lr_scheduler
 from models import create_vae, AutoencoderKL, create_emar_model, EncoderMAR, get_unmasked_indices
+from models import ICLContextEncoder
 from denoiser import get_denoiser, Denoiser
 from backbones import get_backbone
 from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
@@ -37,7 +38,22 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def init_distributed(port=12345, rank_and_world_size=(None, None)):
+def batch_roll(x: torch.Tensor) -> torch.Tensor:
+    """
+    # Rollout -> (B, B, c, h, w) 
+    # We assume the first element is target to masked image prediction 
+    # and the rest are for the context images 
+    """
+    B, C, H, W = x.shape
+    device = x.device
+
+    idx = (torch.arange(B, device=device).unsqueeze(1)
+         + torch.arange(B, device=device).unsqueeze(0)) % B  # (B, B)
+
+    rolled = x[idx]  # (B, B, C, H, W)
+    return rolled
+
+def init_distributed(port=12346, rank_and_world_size=(None, None)):
     if dist.is_available() and dist.is_initialized():
         return dist.get_world_size(), dist.get_rank()
     
@@ -79,7 +95,7 @@ def shutdown(signal, frame):
     sys.exit(0)
     
 
-def main(rank, config, num_gpus, devices, ds_list, ds_indices):
+def main(rank, config, num_gpus, devices, ds_list, ds_indices, steps_per_epoch):
 
     import os
     os.environ['CUDA_VISIBLE_DEVICES'] = str(devices[rank])
@@ -94,7 +110,7 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
     if rank == 0:
         logger.setLevel(logging.INFO)
     else:
-        logger.setLevel(logging.ERROR)
+        logger.setLevel(logging.WARNING)
 
     logging.info(f"Config: {config}")
     
@@ -126,7 +142,9 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
     in_sh = (backbone_embed_dim, img_size // backbone_stride, img_size // backbone_stride)
     
     # build mim model
+    encoder = ICLContextEncoder(**config['encoder']).to(device)
     model = get_denoiser(**config['diffusion'], input_shape=in_sh).to(device)
+    ddp_encoder = DDP(encoder, static_graph=True)
     ddp_model = DDP(model, static_graph=True)
     
     if mask_strategy == "random":
@@ -146,10 +164,9 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
     
     # train_loader = ICLDataLoader(ds_list, mask_collator, batch_size)
     ds_list = [ds_list[i] for i in ds_indices]
-    samplers = [DistributedSampler(ds, num_replicas=num_gpus, rank=rank, shuffle=True) for ds in ds_list]
-    loaders = [DataLoader(ds, batch_size=batch_size, sampler=sampler, collate_fn=mask_collator) for ds, sampler in zip(ds_list, samplers)]
+    loaders = [DataLoader(ds, batch_size=batch_size, collate_fn=mask_collator, pin_memory=True, shuffle=True, num_workers=1, drop_last=True, persistent_workers=True) for ds in ds_list]
 
-    optimizer = get_optimizer(ddp_model, **config['optimizer'])
+    optimizer = get_optimizer([ddp_model, ddp_encoder], **config['optimizer'])
     scheduler = get_lr_scheduler(optimizer, **config['optimizer'])
 
     save_dir = Path(config['logging']['save_dir'])
@@ -163,22 +180,21 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
     logging.info(f"Config is saved at {save_path}")
     
     ddp_model.train()
+    ddp_encoder.train()
+    logger.info(f"Total steps per epoch: {steps_per_epoch}")
     try:
         for epoch in range(config['optimizer']['num_epochs']):
             
-            # Set random seed for dataloaders
-            for loader in loaders:
-                loader.sampler.set_epoch(epoch)
             iterators = [iter(loader) for loader in loaders]
             num_loaders = len(loaders)
-            total_steps = sum([len(loader) for loader in loaders])
             
-            for i in range(total_steps):
+            for i in range(steps_per_epoch):
                 loader_idx = i % num_loaders
                 try:
                     data, mask_indices = next(iterators[loader_idx])
                 except StopIteration:
-                    continue
+                    iterators[loader_idx] = iter(loaders[loader_idx])
+                    data, mask_indices = next(iterators[loader_idx])
                 
                 img, labels = data["samples"], data["clslabels"]    # (B, C, H, W), (B,)
                 mask_indices = mask_indices.to(device)
@@ -197,7 +213,7 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
                 # We assume the first element is target to masked image prediction
                 # and the rest are for the context images
                 # [[x_0, x_1, ..., x_B], [x_1, x_2, ..., x_B, x_0], ..., [x_B, x_0, ..., x_B-1]]
-                rolled_x = torch.stack([torch.roll(x, -i, dims=1) for i in range(len(img))])
+                rolled_x = batch_roll(x)
                 rolled_x = rearrange(rolled_x, "b1 b2 c h w -> b1 b2 (h w) c")
                 target_x = rearrange(x.clone().detach(), "b c h w -> b (h w) c")
                 unmasked_indices = get_unmasked_indices(mask_indices, target_x.size(1))
@@ -211,21 +227,25 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
                 # Get model inputs
                 # condition: (B, B-1, N, C)
                 # target: (B, M, C)
+                
                 cond = rolled_x[:, 1:, ...]
-                loss = ddp_model(masked_target_x, z=cond, mask_indices=mask_indices)
-
+                cond, _ = ddp_encoder(cond)  # (B, L, C)
+                cond = cond.unsqueeze(1) # (B, 1, L, C)
+                loss = ddp_model(masked_target_x, z=cond, mask_indices=mask_indices, z_vis=unmasked_target_x)
+                
+                if torch.isnan(loss):
+                    logging.warning("Loss is NaN, skipping this batch")
+                    continue
+                
                 # backward
                 optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
                 
-                if torch.isnan(loss):
-                    logging.info("Loss is NaN")
-                    exit()
+                optimizer.step()
                 
                 if i % config["logging"]["log_interval"] == 0:
                     logging.info(f"Epoch {epoch}, Iter {i}, Loss {loss.item():.5f}")      
-                    tb_writer.add_scalar("Loss", loss.item(), epoch * total_steps + i)  
+                    tb_writer.add_scalar("Loss", loss.item(), epoch * steps_per_epoch + i)  
                     
                     if config["logging"]["save_images"]:
                         pass
@@ -234,6 +254,8 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
             if (epoch + 1) % config["logging"]["save_interval"] == 0:
                 save_path = save_dir / f"model_latest.pth"
                 torch.save(model.state_dict(), save_path)
+                save_path = save_dir / f"encoder_latest.pth"
+                torch.save(encoder.state_dict(), save_path)
                 logging.info(f"Model is saved at {save_dir}")
             
             scheduler.step()
@@ -248,6 +270,8 @@ def main(rank, config, num_gpus, devices, ds_list, ds_indices):
     # save model
     save_path = save_dir / "model_latest.pth"
     torch.save(model.state_dict(), save_path)
+    save_path = save_dir / "encoder_latest.pth"
+    torch.save(encoder.state_dict(), save_path)
     logging.info(f"Model is saved at {save_dir}")
     
 def save_images(model, vae, tb_writer, epoch, i, device):
@@ -277,13 +301,17 @@ if __name__ == "__main__":
         if class_names[i] != exclude_class:
             ds = build_dataset(**config['data'], category=class_names[i])
             ds_list.append(ds)
+            
+    # calculate steps per epoch: max number of steps among all datasets
+    bs = config['data']['batch_size']
+    steps_per_epoch = max([len(ds)//bs for ds in ds_list]) * (len(ds_list) // num_gpus + 1)
 
     mp.set_start_method('spawn', True)
     
     processes = []
     for rank in range(num_gpus):
         ds_indices = [i for i in range(len(ds_list)) if i % num_gpus == rank]
-        p = mp.Process(target=main, args=(rank, config, num_gpus, args.devices, ds_list, ds_indices))
+        p = mp.Process(target=main, args=(rank, config, num_gpus, args.devices, ds_list, ds_indices, steps_per_epoch))
         p.start()
         processes.append(p)
     

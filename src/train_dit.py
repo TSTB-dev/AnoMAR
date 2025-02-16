@@ -60,7 +60,8 @@ def main(args):
     vae_embed_dim = config['vae']['embed_dim']
     vae_stride = config['vae']['stride']
     img_size = config['data']['img_size']
-    diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
+    # diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
+    diff_in_sh = (3, img_size, img_size)
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     ema_decay = config['diffusion']['ema_decay']
@@ -68,8 +69,11 @@ def main(args):
     model.to(device)
     model_ema.to(device)
     
-    optimizer = get_optimizer(model, **config['optimizer'])
-    scheduler = get_lr_scheduler(optimizer, **config['optimizer'])
+    optimizer = get_optimizer([model], **config['optimizer'])
+    if config['optimizer']['scheduler_type'] == 'none':
+        pass
+    else:
+        scheduler = get_lr_scheduler(optimizer, **config['optimizer'])
 
     save_dir = Path(config['logging']['save_dir'])
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -88,13 +92,12 @@ def main(args):
             img = img.to(device)
             labels = labels.to(device)
             
-            # vae encode
-            with torch.no_grad():
-                posterior = vae.encode(img)  # (B, c, h, w)
-                x = posterior.sample().mul_(0.2325)  # (B, c, h, w)
-                
-            # import pdb; pdb.set_trace()
+            # # vae encode
+            # with torch.no_grad():
+            #     posterior = vae.encode(img)  # (B, c, h, w)
+            #     x = posterior.sample().mul_(0.2325)  # (B, c, h, w)
             
+            x = img
             # forward
             # img = _process_inputs(img)
             loss = model(x, labels)  
@@ -121,8 +124,12 @@ def main(args):
             save_path = save_dir / f"model_ema_latest.pth"
             torch.save(model_ema.state_dict(), save_path)
             print(f"Model is saved at {save_dir}")
-            
-        scheduler.step()
+        
+        if config['optimizer']['scheduler_type'] == 'none':
+            pass
+        else:
+            print(f"Epoch {epoch}: LR {scheduler.get_last_lr()}, Loss {loss.item()}")
+            scheduler.step()
         
     print("Training is done!")
     tb_writer.close()

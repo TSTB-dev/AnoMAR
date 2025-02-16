@@ -58,7 +58,7 @@ class Denoiser(nn.Module):
             in_channels=self.in_channels,
             in_res=self.in_res,
             model_channels=width,
-            out_channels=self.in_channels, # For vb, x 2
+            out_channels=self.in_channels if not learn_sigma else self.in_channels * 2,
             z_channels=z_channels,
             num_blocks=depth,
             grad_checkpoint=grad_checkpoint,
@@ -70,12 +70,13 @@ class Denoiser(nn.Module):
             class_dropout_prob=class_dropout_prob,
             num_classes=num_classes,
             learn_sigma=learn_sigma,
+            **kwargs
         )
         
-        self.train_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing="", noise_schedule='linear', learn_sigma=False, rescale_learned_sigmas=False)
+        self.train_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing="", noise_schedule='linear', learn_sigma=learn_sigma, rescale_learned_sigmas=False)
         self.sample_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing=num_sampling_steps, noise_schedule='linear')
         
-    def forward(self, target, cls_label=None, z=None, mask_indices=None):
+    def forward(self, target, cls_label=None, z=None, mask_indices=None, z_vis=None):
         """Denoising step for training.
         Args:
             target (Tensor): the target image to denoise (B, c, h, w) or (B, N, C)
@@ -89,6 +90,9 @@ class Denoiser(nn.Module):
             assert mask_indices is not None, "mask_indices must be specified if z is provided"
             assert self.conditioning_scheme != "none", "conditioning_scheme must be specified if z is provided"
             z = torch.repeat_interleave(z, self.num_repeat, dim=0)  # (B*N, ...)
+        
+        if z_vis is not None:
+            z_vis = torch.repeat_interleave(z_vis, self.num_repeat, dim=0)  # (B*N, ...)
             
         # repeat target and mask_indices
         target = torch.repeat_interleave(target, self.num_repeat, dim=0)  # (B*N, C, H, W)
@@ -105,15 +109,15 @@ class Denoiser(nn.Module):
         t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B*N, )
         
         # denoising
-        model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
+        model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
         loss_dict = self.train_diffusion.training_losses(self.net, target, t, model_kwargs)
         loss = loss_dict['loss']
         return loss.mean()  # mean over the batch
     
-    def sample(self, input_shape, cls_label=None, z=None, mask_indices=None, temperature=1.0, cfg=1.0):
+    def sample(self, input_shape, cls_label=None, z=None, mask_indices=None, temperature=1.0, cfg=1.0, z_vis=None, device="cuda", strategy="org"):
         """Denoising step for sampling.
         Args:
-            input_shape (Tuple[int, int, int]): the input shape (C, H, W)
+            input_shape (Tuple[int, int, int, int]): the input shape (B, C, H, W)
             cls_label (Tensor): the class label (B, )
             z (Tensor): the conditioning variable (B, Z)
             temperature (float): the temperature for sampling
@@ -127,26 +131,38 @@ class Denoiser(nn.Module):
         
         if not cfg == 1.0:
             # do classifer free guidance
-            noise = torch.randn(z.shape[0] // 2, *input_shape).to(z.device)  # (B//2, C)
+            noise = torch.randn(*input_shape).to(device)  # (B//2, C)
             noise = torch.cat([noise, noise], dim=0)  # (B, C)
             model_kwargs = dict(c=cls_embed, cfg_scale=cfg)
             sample_fn = self.net.forward_with_cfg
         else:
-            noise = torch.randn(z.shape[0], *input_shape).to(z.device)  # (B, C, H, W)
-            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
+            noise = torch.randn(*input_shape).to(device)  # (B, C, H, W)
+            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
             sample_fn = self.net.forward
         
         # sampling loop
-        sample = self.sample_diffusion.p_sample_loop(
-            sample_fn,
-            noise.shape,
-            noise, 
-            clip_denoised=False,
-            model_kwargs=model_kwargs,
-            progress=False,
-            temperature=temperature,
-            device=z.device
-        )
+        if strategy == "org":
+            sample = self.sample_diffusion.p_sample_loop(
+                sample_fn,
+                noise.shape,
+                noise, 
+                clip_denoised=False,
+                model_kwargs=model_kwargs,
+                progress=False,
+                temperature=temperature,
+                device=device
+            )
+        elif strategy == "ddim":
+            sample = self.sample_diffusion.ddim_sample_loop(
+                sample_fn,
+                noise.shape,
+                noise,
+                clip_denoised=False,
+                model_kwargs=model_kwargs,
+                progress=False,
+                device=device,
+                eta=0.0
+            )
         return sample
     
     def q_sample(self, x_start: Tensor, t: Tensor, noise=None) -> Tensor:
@@ -160,8 +176,8 @@ class Denoiser(nn.Module):
         """
         return self.sample_diffusion.q_sample(x_start, t, noise=noise)
     
-    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label: Tensor=None, z = None, mask_indices=None, cfg=1.0, \
-        sampler: str="org", eta: float = 0.0, temperature: float = 1.0) -> Tensor:
+    def denoise_from_intermediate(self,  x_t: Tensor, t: Tensor, cls_label=None, z = None, mask_indices=None, cfg=1.0, \
+        sampler: str="org", eta: float = 0.0, temperature: float = 1.0, z_vis=None) -> Tensor:
         """Denoise from intermediate state x_t to x_0
         Args:
             x_t (Tensor): the intermediate diffusion latent variables (B, c, h, w)
@@ -187,7 +203,7 @@ class Denoiser(nn.Module):
             model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward_with_cfg
         else:
-            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices)
+            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
             sample_fn = self.net.forward
             
         indices = list(range(t[0].item()))[::-1]
@@ -204,7 +220,7 @@ class Denoiser(nn.Module):
                 )
                 x_t = out["sample"]
             elif sampler == "ddim":
-                out = self.sample_diffusion.p_sample_ddim(
+                out = self.sample_diffusion.ddim_sample(
                     sample_fn,
                     x_t,
                     t,

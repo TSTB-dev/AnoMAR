@@ -4,9 +4,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --output_dir ./results/loco_mim_base_enet/breakfast_box \
-    --model_ckpt ./results/loco_mim_base_enet/breakfast_box/model_latest.pth \
-    --config_path ./results/loco_mim_base_enet/breakfast_box/config.yaml \
+    --output_dir ./results/loco_mim_base_vae/breakfast_box \
+    --model_ckpt ./results/loco_mim_base_vae/breakfast_box/model_latest.pth \
+    --config_path ./results/loco_mim_base_vae/breakfast_box/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -14,9 +14,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --output_dir ./results/loco_mim_base_enet/juice_bottle \
-    --model_ckpt ./results/loco_mim_base_enet/juice_bottle/model_latest.pth \
-    --config_path ./results/loco_mim_base_enet/juice_bottle/config.yaml \
+    --output_dir ./results/loco_mim_base_vae/juice_bottle \
+    --model_ckpt ./results/loco_mim_base_vae/juice_bottle/model_latest.pth \
+    --config_path ./results/loco_mim_base_vae/juice_bottle/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -24,9 +24,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --output_dir ./results/loco_mim_base_enet/pushpins \
-    --model_ckpt ./results/loco_mim_base_enet/pushpins/model_latest.pth \
-    --config_path ./results/loco_mim_base_enet/pushpins/config.yaml \
+    --output_dir ./results/loco_mim_base_vae/pushpins \
+    --model_ckpt ./results/loco_mim_base_vae/pushpins/model_latest.pth \
+    --config_path ./results/loco_mim_base_vae/pushpins/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -34,9 +34,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --output_dir ./results/loco_mim_base_enet/screw_bag \
-    --model_ckpt ./results/loco_mim_base_enet/screw_bag/model_latest.pth \
-    --config_path ./results/loco_mim_base_enet/screw_bag/config.yaml \
+    --output_dir ./results/loco_mim_base_vae/screw_bag \
+    --model_ckpt ./results/loco_mim_base_vae/screw_bag/model_latest.pth \
+    --config_path ./results/loco_mim_base_vae/screw_bag/config.yaml \
     --device cuda \
     --batch_size 1
 
@@ -44,9 +44,9 @@ export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_mim.py \
    --num_masks 4 \
     --recon_space latent \
-    --output_dir ./results/loco_mim_base_enet/splicing_connectors \
-    --model_ckpt ./results/loco_mim_base_enet/splicing_connectors/model_latest.pth \
-    --config_path ./results/loco_mim_base_enet/splicing_connectors/config.yaml \
+    --output_dir ./results/loco_mim_base_vae/splicing_connectors \
+    --model_ckpt ./results/loco_mim_base_vae/splicing_connectors/model_latest.pth \
+    --config_path ./results/loco_mim_base_vae/splicing_connectors/config.yaml \
     --device cuda \
     --batch_size 1
 

@@ -1,0 +1,45 @@
+diffusion:
+  model_type: 'unet'
+  num_classes: 15
+  target_channels: 3
+  z_channels: 768
+  depth: 2
+  width: 256
+  num_sampling_steps: '100'
+  ema_decay: 0.999
+  learn_sigma: false
+  grad_checkpoint: false
+  patch_size: 1
+  channel_mult: [1,1,2,2]
+vae:
+  model_type: 'vae_kl'
+  embed_dim: 16
+  ch_mult: [1, 1, 2, 2, 4]
+  stride: 16
+  ckpt_path: './weights/vae/kl16.ckpt'
+data:
+  batch_size: 32
+  category: carpet
+  data_root: data/mvtec_ad
+  dataset_name: mvtec_ad
+  img_size: 256
+  multi_category: false
+  num_normal_samples: -1
+  num_workers: 1
+  pin_memory: true
+  train: true
+  transform_type: default
+optimizer:
+  num_epochs: 3000
+  optimizer_name: adam
+  scheduler_type: none
+  start_lr: 3e-4
+  weight_decay: 0.05
+logging:
+  log_interval: 10
+  save_interval: 100
+  save_images: false
+  save_dir: 'results/ad_unet_vae_ddad/carpet'
+meta:
+  seed: 42
+  device: 'cuda'

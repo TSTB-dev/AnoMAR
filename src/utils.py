@@ -235,7 +235,7 @@ class WarmupCosineSchedule:
     
 
 def get_optimizer(
-    model: nn.Module,
+    models: List[nn.Module],
     *,
     optimizer_name: str,
     start_lr: float,
@@ -254,21 +254,28 @@ def get_optimizer(
     Returns:
         torch.optim.Optimizer: Optimizer
     """
+    params = []
+    for model in models:
+        params += list(model.parameters())
+    
+    if isinstance(start_lr, str):
+        start_lr = float(start_lr)
+    
     if optimizer_name == "adam":
         optimizer = Adam(
-            model.parameters(),
+            params,
             lr=start_lr,
             weight_decay=weight_decay,
         )
     elif optimizer_name == "adamw":
         optimizer = AdamW(
-            model.parameters(),
+            params,
             lr=start_lr,
             weight_decay=weight_decay,
         )
     elif optimizer_name == "sgd":
         optimizer = SGD(
-            model.parameters(),
+            params,
             lr=start_lr,
             weight_decay=weight_decay,
         )

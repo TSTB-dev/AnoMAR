@@ -66,7 +66,7 @@ class GaussianDiffusion:
         assert len(self.betas.shape) == 1, "betas must be 1D"
         assert (self.betas > 0).all() and (betas <= 1).all(), "betas must be in (0, 1]"
         
-        self.num_timesteps = len(self.betas)
+        self.num_timesteps = int(betas.shape[0])
         
         # Calculate alphas
         alphas = 1.0 - self.betas
@@ -90,10 +90,10 @@ class GaussianDiffusion:
         )  # (T,)
         self.posterior_log_variance_clipped = np.log(
             np.append(self.posterior_variance[1], self.posterior_variance[1:])
-        ) if len(self.posterior_variance) > 0 else np.array([])  # (T, )
+        ) if len(self.posterior_variance) > 1 else np.array([])  # (T, )
         # log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain.
         self.posterior_mean_coef1 = (
-            self.betas * np.sqrt(self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
+            betas * np.sqrt(self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
         )  # (T,)
         self.posterior_mean_coef2 = (
             np.sqrt(alphas) * (1.0 - self.alphas_cumprod_prev) / (1.0 - self.alphas_cumprod)
@@ -164,13 +164,18 @@ class GaussianDiffusion:
             - extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * eps
         )
     
-    def _predict_eps_from_xstart(self, x_t: Tensor, t: Tensor, pred_xstart: Tensor) -> Tensor:
-        """Predict noise from x_t and x_0.
-        """
-        assert x_t.shape == pred_xstart.shape
+    # def _predict_eps_from_xstart(self, x_t: Tensor, t: Tensor, pred_xstart: Tensor) -> Tensor:
+    #     """Predict noise from x_t and x_0.
+    #     """
+    #     assert x_t.shape == pred_xstart.shape
+    #     return (
+    #         extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t - pred_xstart
+    #     ) * extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape)
+
+    def _predict_eps_from_xstart(self, x_t, t, pred_xstart):
         return (
             extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t - pred_xstart
-        ) * extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_t.shape)
+        ) / extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape)
 
     def p_mean_variance(self, model: nn.Module, x: Tensor, t: Tensor, clip_denoised: bool = True, denoised_fn=None, model_kwargs=None):
         """"""
@@ -233,7 +238,8 @@ class GaussianDiffusion:
             'variance': model_variance,
             'log_variance': model_log_variance,
             'pred_xstart': pred_xstart,
-            'extra': extra
+            'extra': extra,
+            'eps': model_mean_values,
         }
     
     def condition_mean(self, cond_fn: nn.Module, p_mean_var: dict, x: Tensor, t: Tensor, model_kwargs=None) -> Tensor:
@@ -316,6 +322,9 @@ class GaussianDiffusion:
         # sampling
         sample = out["mean"] + nonzero_mask * torch.exp(0.5 * out["log_variance"]) * noise * temperature
         return {
+            "posterior_mean": out["mean"],
+            "posterior_variance": torch.exp(0.5 * out["log_variance"]),
+            "eps": out["eps"],
             "sample": sample,
             "pred_xstart": out["pred_xstart"],  # TODO: this is not conditioned
         }
@@ -421,151 +430,115 @@ class GaussianDiffusion:
         ):
             final = sample
         return final["sample"]
-    
+
     def ddim_sample(
         self,
-        model: nn.Module,
-        x: Tensor,
-        t: Tensor,
-        clip_denoised: bool=True,
+        model,
+        x,
+        t,
+        clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
-        eta: float=0.0,
-    ): 
-        """Sample from the model with denoising diffusion implicit model.
-        Args:
-            model (nn.Module): model that predicts the previous step.
-            x (Tensor): tensor of shape (B, C, H, W) representing the current step.
-            t (Tensor): tensor of shape (B, ) representing the time indices.
-            clip_denoised (bool): whether to clip the denoised output.
-            denoised_fn: function that denoises the output.
-            cond_fn: function that computes the gradient of a conditional log probability with respect to x.
-            model_kwargs (dict): additional arguments for the model.
-            eta (float): noise level.   
-        Returns:
-            dict: dictionary containing the sampled x_{t-1} and the predicted x_0.
+        eta=0.0,
+    ):
         """
-        # Predict the mean and variance of the previous step
-        out = self.p_mean_variance(model, x, t, clip_denoised, denoised_fn, model_kwargs)
-        
+        Sample x_{t-1} from the model using DDIM.
+        Same usage as p_sample().
+        """
+        out = self.p_mean_variance(
+            model,
+            x,
+            t,
+            clip_denoised=clip_denoised,
+            denoised_fn=denoised_fn,
+            model_kwargs=model_kwargs,
+        )
         if cond_fn is not None:
-            # TODO: why this is conditioned on score?
-            out = self.conditional_score(cond_fn, out, x, t, model_kwargs)
-        
-        eps = self._predict_eps_from_xstart(x_t=x, t=t, pred_xstart=out["pred_xstart"])  # (B, C, H, W)
-        
-        alpha_bar = extract_into_tensor(self.alphas_cumprod, t, x.shape)  # (B, C, H, W)
-        alpha_bar_prev = extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)  # (B, C, H, W)
+            out = self.condition_score(cond_fn, out, x, t, model_kwargs=model_kwargs)
+
+        # Usually our model outputs epsilon, but we re-derive it
+        # in case we used x_start or x_prev prediction.
+        eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
+
+        alpha_bar = extract_into_tensor(self.alphas_cumprod, t, x.shape)
+        alpha_bar_prev = extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
         sigma = (
             eta
             * torch.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
-            * torch.exp(1 - alpha_bar / alpha_bar_prev)
+            * torch.sqrt(1 - alpha_bar / alpha_bar_prev)
         )
-        noise = torch.rand_like(x)  # (B, C, H, W)
-        nonzero_mask = (
-            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))  
-        )  # (B, 1, 1, 1), no noise for t=0
+        # Equation 12.
+        noise = torch.randn_like(x)
         mean_pred = (
-            out["pred_xstart"] * alpha_bar_prev.sqrt()
+            out["pred_xstart"] * torch.sqrt(alpha_bar_prev)
             + torch.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
         )
+        nonzero_mask = (
+            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
+        )  # no noise when t == 0
         sample = mean_pred + nonzero_mask * sigma * noise
-        return {
-            "sample": sample,
-            "pred_xstart": out["pred_xstart"],
-        }
-    
-    def ddim_sample_loop_progressive(
-        self, 
-        model: nn.Module,
-        shape: Tuple[int, int, int, int],
-        noise: Tensor=None,
-        clip_denoised: bool=True,
+        return {"sample": sample, "pred_xstart": out["pred_xstart"]}
+
+    def ddim_reverse_sample(
+        self,
+        model,
+        x,
+        t,
+        clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
-        device=None,
-        progress: bool=False,
-        eta: float=0.0,
+        eta=0.0,
     ):
-        """Generate samples from the model with denoising diffusion implicit model and yield intermediate samples from each timesteps of the diffusion chain.
-        Args:
-            model (nn.Module): model that predicts the previous step.
-            shape (Tuple[int, int, int, int]): shape of the input tensor.
-            noise (Tensor): tensor of shape (B, C, H, W) representing the noise. If None, a new noise tensor is created.
-            clip_denoised (bool): whether to clip the denoised output.
-            denoised_fn: function that denoises the output.
-            cond_fn: function that computes the gradient of a conditional log probability with respect to x.
-            model_kwargs (dict): additional arguments for the model.
-            device: device to use.
-            progress (bool): whether to show progress bar.
-            eta (float): noise level.
-        Yields:
-            dict: dictionary containing the sampled x_{t-1} and the predicted x_0.
         """
-        assert isinstance(shape, (tuple, list))
-        
-        # sample x_T
-        if noise is not None:
-            img = noise
-        else:
-            img = torch.randn(shape, device=device)
-        indices = list(range(self.num_timesteps))[::-1]
-        
-        if progress:
-            from tqdm.auto import tqdm
-            
-            indices = tqdm(indices)
-        
-        for i in indices:
-            t = torch.tensor([i] * shape[0]).to(device)
-            with torch.no_grad():
-                out = self.ddim_sample(
-                    model,
-                    img, 
-                    t,
-                    clip_denoised=clip_denoised,
-                    denoised_fn=denoised_fn,
-                    cond_fn=cond_fn,
-                    model_kwargs=model_kwargs,
-                    eta=eta
-                )
-                yield out
-                img = out["sample"]
-    
+        Sample x_{t+1} from the model using DDIM reverse ODE.
+        """
+        assert eta == 0.0, "Reverse ODE only for deterministic path"
+        out = self.p_mean_variance(
+            model,
+            x,
+            t,
+            clip_denoised=clip_denoised,
+            denoised_fn=denoised_fn,
+            model_kwargs=model_kwargs,
+        )
+        if cond_fn is not None:
+            out = self.condition_score(cond_fn, out, x, t, model_kwargs=model_kwargs)
+        # Usually our model outputs epsilon, but we re-derive it
+        # in case we used x_start or x_prev prediction.
+        eps = (
+            extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x.shape) * x
+            - out["pred_xstart"]
+        ) / extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x.shape)
+        alpha_bar_next = extract_into_tensor(self.alphas_cumprod_next, t, x.shape)
+
+        # Equation 12. reversed
+        mean_pred = out["pred_xstart"] * torch.sqrt(alpha_bar_next) + torch.sqrt(1 - alpha_bar_next) * eps
+
+        return {"sample": mean_pred, "pred_xstart": out["pred_xstart"]}
+
     def ddim_sample_loop(
         self,
-        model: nn.Module,
-        shape: Tuple[int, int, int, int],
-        noise: Tensor=None,
-        clip_denoised: bool=True,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
         device=None,
-        progress: bool=False,
-        eta: float=0.0,
+        progress=False,
+        eta=0.0,
     ):
-        """Generate samples from the model and return the final sample.
-        Args:
-            model (nn.Module): model that predicts the previous step.
-            shape (Tuple[int, int, int, int]): shape of the input tensor.
-            noise (Tensor): tensor of shape (B, C, H, W) representing the noise. If None, a new noise tensor is created.
-            clip_denoised (bool): whether to clip the denoised output.
-            denoised_fn: function that denoises the output.
-            cond_fn: function that computes the gradient of a conditional log probability with respect to x.
-            model_kwargs (dict): additional arguments for the model.
-            device: device to use.
-            progress (bool): whether to show progress bar.
-            eta (float): noise level.
-        Returns:
-            Tensor: tensor of shape (B, C, H, W) representing the final sample.
         """
-        final: Tensor = None
+        Generate samples from the model using DDIM.
+        Same usage as p_sample_loop().
+        """
+        final = None
         for sample in self.ddim_sample_loop_progressive(
             model,
-            shape, 
+            shape,
             noise=noise,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -573,61 +546,58 @@ class GaussianDiffusion:
             model_kwargs=model_kwargs,
             device=device,
             progress=progress,
-            eta=eta
+            eta=eta,
         ):
-            final = sample["sample"]
+            final = sample
         return final["sample"]
-    
-    def ddim_reverse_sample(
-        self, 
-        model: nn.Module,
-        x: Tensor,
-        t: Tensor,
-        clip_denoised: bool=True,
+
+    def ddim_sample_loop_progressive(
+        self,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
-        eta: float=0.0,
-    ) -> dict:
-        """Sample x_{t+1} from the model using DDIM reverse ODE.
-        Args:
-            model (nn.Module): model that predicts the previous step.
-            x (Tensor): tensor of shape (B, C, H, W) representing the current step.
-            t (Tensor): tensor of shape (B, ) representing the time indices.
-            clip_denoised (bool): whether to clip the denoised output.
-            denoised_fn: function that denoises the output.
-            cond_fn: function that computes the gradient of a conditional log probability with respect to x.
-            model_kwargs (dict): additional arguments for the model.
-            eta (float): noise level.
-        Returns:
-            dict: dictionary containing the sampled x_{t+1} and the predicted x_0.
+        device=None,
+        progress=False,
+        eta=0.0,
+    ):
         """
-        assert eta == 0.0, "eta must be 0 for reverse sampling."
-        out = self.p_mean_variance(
-            model,
-            x,
-            t,
-            clip_denoised=clip_denoised,
-            denoised_fn=denoised_fn,
-            model_kwargs=model_kwargs
-        )
-        if cond_fn is not None:
-            out = self.conditional_score(cond_fn, out, x, t, model_kwargs)
-        
-        # TODO:
-        eps = (
-            extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x.shape) * x
-            - out["pred_xstart"]
-        ) / extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x.shape)
-        alpha_bar_next = extract_into_tensor(self.alphas_cumprod_next, t, x.shape)
-        
-        mean_pred = out["pred_xstart"] * torch.sqrt(alpha_bar_next) + torch.sqrt(1 - alpha_bar_next) * eps
-        
-        return {
-            "sample": mean_pred,
-            "pred_xstart": out["pred_xstart"],
-        }
-    
+        Use DDIM to sample from the model and yield intermediate samples from
+        each timestep of DDIM.
+        Same usage as p_sample_loop_progressive().
+        """
+        assert isinstance(shape, (tuple, list))
+        if noise is not None:
+            img = noise
+        else:
+            img = torch.randn(*shape).cuda()
+        indices = list(range(self.num_timesteps))[::-1]
+
+        if progress:
+            # Lazy import so that we don't depend on tqdm.
+            from tqdm.auto import tqdm
+
+            indices = tqdm(indices)
+
+        for i in indices:
+            t = torch.tensor([i] * shape[0]).cuda()
+            with torch.no_grad():
+                out = self.ddim_sample(
+                    model,
+                    img,
+                    t,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    cond_fn=cond_fn,
+                    model_kwargs=model_kwargs,
+                    eta=eta,
+                )
+                yield out
+                img = out["sample"]
+
     def _vb_terms_bpd(
         self, 
         model: nn.Module,

@@ -25,12 +25,27 @@ def build_transforms(img_size, transform_type):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-    if transform_type == 'crop':
+    elif transform_type == 'crop':
         return transforms.Compose([
             transforms.RandomResizedCrop(img_size),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
+    elif transform_type == 'rotation':
+        return transforms.Compose([
+            transforms.Resize((img_size, img_size)),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5]),
+        ])
+    elif transform_type == 'ddad':
+        return transforms.Compose(
+            [
+                transforms.Resize((img_size, img_size)),  
+                transforms.ToTensor(), # Scales data into [0,1] 
+                transforms.Lambda(lambda t: (t * 2) - 1) # Scale between [-1, 1] 
+            ]
+        )
     else:
         raise ValueError(f"Invalid transform: {transform_type}")
 
@@ -73,15 +88,13 @@ class ICLDataLoader:
         
 
 class EvalDataLoader:
-    def __init__(self, dataset, num_repeat, collate_fn, shared_masks=None):
+    def __init__(self, dataset, num_repeat, batch_size):
         self.dataset = dataset
         self.num_repeat = num_repeat
-        self.collate_fn = collate_fn
+        self.batch_size = batch_size
         # We repeat each sample in the dataset for the number of times it is required to be evaluated.
-        self.dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)  
+        self.dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)  
         self.iterator = iter(self.dataloader)
-        
-        self.shared_masks = shared_masks
     
     def __iter__(self):
         return self
@@ -89,25 +102,33 @@ class EvalDataLoader:
     def __next__(self):
         data = next(self.iterator)  
         
-        repeated_data = []
-        data["samples"] = data["samples"][0]  # (1, C, H, W) -> (C, H, W)
-        data["labels"] = data["labels"]
-        data["filenames"] = data["filenames"][0]
-        data["clsnames"] = data["clsnames"][0]
-        data["anom_type"] = data["anom_type"][0]
-        data["clslabels"] = data["clslabels"][0]
-        data["masks"] = data["masks"][0]  # gt masks
-        for _ in range(self.num_repeat):
-            repeated_data.append(data)
+        imgs = data["samples"] # (B, C, H, W) -> (C, H, W)
+        labels = data["labels"]
+        fnames = data["filenames"]
+        clsnames = data["clsnames"]
+        anomtypes = data["anom_type"]
+        clslabels = data["clslabels"]
+        gtmasks = data["masks"]  # gt masks
+        
+        imgs = imgs.repeat_interleave(self.num_repeat, dim=0)  # (B*N, C, H, W)
+        labels = labels.repeat_interleave(self.num_repeat, dim=0)
+        fnames = [fname for fname in fnames for _ in range(self.num_repeat)]
+        clsnames = [clsname for clsname in clsnames for _ in range(self.num_repeat)]
+        anomtypes = [anomtype for anomtype in anomtypes for _ in range(self.num_repeat)]
+        clslabels = clslabels.repeat_interleave(self.num_repeat, dim=0)
+        gtmasks = gtmasks.repeat_interleave(self.num_repeat, dim=0)
 
         # use shared masks accross all test samples
-        collated_batch, collated_masks = self.collate_fn(repeated_data)
-        if self.shared_masks is None:
-            self.shared_masks = collated_masks
-        else:
-            collated_masks = self.shared_masks
-        
-        return collated_batch, collated_masks
+        collated_batch = {
+            "samples": imgs,
+            "labels": labels,
+            "filenames": fnames,
+            "clsnames": clsnames,
+            "anom_type": anomtypes,
+            "clslabels": clslabels,
+            "masks": gtmasks,
+        }
+        return collated_batch
     
     def __len__(self):
         return len(self.dataloader)

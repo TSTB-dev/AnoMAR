@@ -44,14 +44,14 @@ optimizer:
   min_lr: 0.000001
   weight_decay: 0.000001
   scheduler_type: 'warmup_cosine'
-  warmup_epochs: 40
-  num_epochs: 1000
+  warmup_epochs: 10
+  num_epochs: 200
   grad_clip: 1.0
 logging:
   log_interval: 10
   save_interval: 10
   save_images: false
-  save_dir: 'results/exp_icl_ca_vae_exbottle'
+  save_dir: 'results/exp_icl_ca_vae_exbottle_vis'
 meta:
   seed: 42
   device: 'cuda'

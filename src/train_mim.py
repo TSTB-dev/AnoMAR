@@ -103,7 +103,7 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True, collate_fn=mask_collator, \
         pin_memory=config['data']['pin_memory'], num_workers=config['data']['num_workers'])
 
-    optimizer = get_optimizer(model, **config['optimizer'])
+    optimizer = get_optimizer([model], **config['optimizer'])
     scheduler = get_lr_scheduler(optimizer, **config['optimizer'])
 
     save_dir = Path(config['logging']['save_dir'])

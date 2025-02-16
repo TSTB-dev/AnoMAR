@@ -15,11 +15,17 @@ import yaml
 from pprint import pprint
 
 from datasets import build_dataset
-from utils import get_optimizer, get_lr_scheduler
+from utils import get_optimizer, get_lr_scheduler, AverageMeter
 from models import create_vae, AutoencoderKL, create_emar_model, EncoderMAR
 from denoiser import get_denoiser, Denoiser
 from backbones import get_backbone
 from mask import RandomMaskCollator, BlockRandomMaskCollator, CheckerBoardMaskCollator, indices_to_mask, mask_to_indices
+
+def calculate_mask_coverage(mask, num_patches):
+    # mask: (B, L)
+    batch_sum = mask.sum(dim=1)  # (B,)
+    batch_mean = batch_sum / num_patches
+    return batch_mean.mean().item()
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AnoMAR Training")
@@ -90,7 +96,7 @@ def main(args):
     
     if mask_strategy == "random":
         mask_collator = RandomMaskCollator(
-            input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask']
+            input_size=mim_in_sh[1], patch_size=patch_size, **config['data']['mask'], total_steps=config['optimizer']['num_epochs']
         )
     elif mask_strategy == "block":
         mask_collator = BlockRandomMaskCollator(
@@ -106,7 +112,7 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True, collate_fn=mask_collator, \
         pin_memory=config['data']['pin_memory'], num_workers=config['data']['num_workers'])
 
-    optimizer = get_optimizer(model, **config['optimizer'])
+    optimizer = get_optimizer([model], **config['optimizer'])
     scheduler = get_lr_scheduler(optimizer, **config['optimizer'])
 
     save_dir = Path(config['logging']['save_dir'])
@@ -121,6 +127,8 @@ def main(args):
     
     model.train()
     for epoch in range(config['optimizer']['num_epochs']):
+        
+        mask_cov_meter = AverageMeter()
         for i, (data, mask_indices) in enumerate(train_loader):
             img, labels = data["samples"], data["clslabels"]    # (B, C, H, W), (B,)
             img = img.to(device)
@@ -147,6 +155,9 @@ def main(args):
             if torch.isnan(loss):
                 print("Loss is NaN")
                 exit()
+                
+            mask_cov = calculate_mask_coverage(mask, model.num_patches)
+            mask_cov_meter.update(mask_cov)
             
             # update ema
             for ema_param, model_param in zip(model_ema.parameters(), model.parameters()):
@@ -156,7 +167,6 @@ def main(args):
                 print(f"Epoch {epoch}, Iter {i}, Loss {loss.item():.5f}")      
                 tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader) + i)  
                 tb_writer.add_scalar("Diffusion Loss", loss.item(), epoch * len(train_loader) + i)
-                
                 if config["logging"]["save_images"]:
                     pass
                     # save_images(model_ema, vae, tb_writer, epoch, i, device)
@@ -169,6 +179,9 @@ def main(args):
             print(f"Model is saved at {save_dir}")
         
         scheduler.step()
+        train_loader.collate_fn.update()
+        print(f"Epoch {epoch}, Mask Coverage: {mask_cov_meter.avg:.5f}")
+        
 
     print("Training is done!")
     tb_writer.close()

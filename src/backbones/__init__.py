@@ -6,11 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .efficientnet import build_efficient
+from .resnet import wide_resnet101_2
 
 def get_efficientnet(model_name, **kwargs):
     return build_efficient(model_name, **kwargs)
 
-def get_pdn_small(out_channels=384, padding=False):
+def get_pdn_small(out_channels=384, padding=False, **kwargs):
     pad_mult = 1 if padding else 0
     return nn.Sequential(
         nn.Conv2d(in_channels=3, out_channels=128, kernel_size=4,
@@ -27,7 +28,7 @@ def get_pdn_small(out_channels=384, padding=False):
         nn.Conv2d(in_channels=256, out_channels=out_channels, kernel_size=4)
     )
 
-def get_pdn_medium(out_channels=384, padding=False):
+def get_pdn_medium(out_channels=384, padding=False, **kwargs):
     pad_mult = 1 if padding else 0
     return nn.Sequential(
         nn.Conv2d(in_channels=3, out_channels=256, kernel_size=4,
@@ -59,6 +60,19 @@ def get_backbone(**kwargs):
         # net = get_efficientnet(model_name, pretrained=True, outblocks=[1, 5, 9, 21], outstrides=[2, 4, 8, 16])
         net =  get_efficientnet(model_name, **kwargs)
         return BackboneWrapper(net, [0.125, 0.25, 0.5, 1.0])
+    elif 'wide_resnet' in model_name:
+        ckpt_path = kwargs.get('ckpt_path', None)
+        pretrained = False if ckpt_path is not None else True
+        model = wide_resnet101_2(pretrained=pretrained)
+        if ckpt_path is not None:
+            print(f"Loading checkpoint from {ckpt_path}")
+            model_ckpt = torch.load(ckpt_path, weights_only=True)
+            for k,v in list(model_ckpt.items()):
+                k_new = k.replace("module.","")
+                # replace the key name
+                model_ckpt[k_new] = model_ckpt.pop(k)
+            model.load_state_dict(model_ckpt)
+        return model
     else:
         raise ValueError(f"Invalid backbone model: {model_name}")
     

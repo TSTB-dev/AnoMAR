@@ -1,11 +1,13 @@
 from .mlp import SimpleMLPAdaLN
-from .unet import Unet
+from .unet import UNetModel 
 from .dit import DiT, ICLDiT
 from .vae import AutoencoderKL
 from .mim import mim_tiny, mim_small, mim_base, mim_large, mim_huge, mim_gigant, predictor_tiny, \
     predictor_small, predictor_base, predictor_large, predictor_huge, predictor_gigant, PREDICTOR_SUPPORTEED_MODELS, MIM_SUPPORTEED_MODELS, MaskedImageModelingModel, EncoderDecoerMAR, \
         mar_tiny, mar_small, mar_base, mar_large, mar_huge, mar_gigant, emar_tiny, emar_small, emar_base, emar_large, emar_huge, emar_gigant, EMAR_SUPPORTEED_MODELS, EncoderMAR, get_unmasked_indices
 from . import mim
+from .icl import ICLContextEncoder
+from .unet_ddad import UNetModel as UNetModelDDAD
 def create_emar_model(denoiser, **kwargs):
     model_type = kwargs['model_type']
     assert model_type in MIM_SUPPORTEED_MODELS, f"Model {model_type} not supported"
@@ -89,6 +91,8 @@ def create_denising_model(
     grad_checkpoint: bool = False, 
     conditioning_scheme: str = 'none',
     pos_embed = None,
+    channel_mult = (1, 1, 2, 2),
+    **kwargs
 ):
     if model_type == "mlp":
         return SimpleMLPAdaLN(
@@ -100,12 +104,36 @@ def create_denising_model(
             grad_checkpoint=grad_checkpoint
         )
     elif model_type == "unet":
-        return Unet(
-            num_timesteps=1000,
-            time_embed_dim=128,
+        # return UNetModel(
+        #     image_size=256,
+        #     in_channels=3,
+        #     model_channels=256,
+        #     out_channels=3,
+        #     num_res_blocks=2,
+        #     attention_resolutions=[],
+        #     channel_mult=(1, 1, 2, 2, 4, 4),
+        #     num_heads=16,
+        #     num_heads_upsample=-1,
+        #     use_fp16=False,
+        # )
+        # return UNetModel(
+        #     image_size=in_res,
+        #     in_channels=in_channels,
+        #     model_channels=model_channels,
+        #     out_channels=out_channels,
+        #     num_res_blocks=num_blocks,
+        #     attention_resolutions=[2, 4, 8],
+        #     channel_mult=channel_mult,
+        #     num_heads=16,
+        #     num_heads_upsample=-1,
+        #     use_fp16=False,
+        # )
+        return UNetModelDDAD(
+            in_res,
+            64,
+            dropout=0.3,
+            n_heads=2,
             in_channels=in_channels,
-            out_channels=out_channels,
-            dim_mults=[2, 4, 8],
         )
     elif model_type == "dit":
         return DiT(

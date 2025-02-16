@@ -92,10 +92,18 @@ class SpacedDiffusion(GaussianDiffusion):
     def _scale_timesteps(self, t):
         return t
     
+    def _get_original_timesteps(self, t):
+        return torch.tensor(self.timesteps_map, device=t.device, dtype=t.dtype)[t]
+    
     def p_mean_variance(
         self, model, *args, **kwargs
     ):
         return super().p_mean_variance(self._wrap_model(model), *args, **kwargs)
+    
+    def q_sample(
+        self, x_0, t, noise=None, **kwargs
+    ):
+        return super().q_sample(x_0, t, noise, **kwargs)
     
     def training_losses(self, model, *args, **kwargs):
         return super().training_losses(self._wrap_model(model), *args, **kwargs)

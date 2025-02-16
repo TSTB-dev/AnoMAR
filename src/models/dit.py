@@ -415,7 +415,7 @@ class DiT(nn.Module):
         x = rearrange(x, 'b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=w, p1=p, p2=p, c=C)
         return x
 
-    def forward(self, x, t, c, z = None, mask_indices=None):
+    def forward(self, x, t, c, z = None, mask_indices=None, z_vis=None):
         """Apply model to an input batch.
         Args:
             x (Tensor): input tensor (B, C, H, W)
@@ -609,7 +609,7 @@ class ICLDiT(nn.Module):
         x = rearrange(x, 'b (h w) (p1 p2 c) -> b c (h p1) (w p2)', h=h, w=w, p1=p, p2=p, c=C)
         return x
 
-    def forward(self, x, t, z = None, mask_indices=None, **kwargs):
+    def forward(self, x, t, z = None, mask_indices=None, z_vis=None, **kwargs):
         """Apply model to an input batch.
         Args:
             x (Tensor): masked target image (B, M, c)
@@ -621,24 +621,35 @@ class ICLDiT(nn.Module):
         """
         # Process masked target image
         x = self.x_embedder_linear(x)
-        B, M = mask_indices.size()
+        B, K, N, C = z.shape
         pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
         gathered_pos_embed = torch.gather(
             pos_embed, 1, mask_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
         )  # (B, M, D)
-        x = x + gathered_pos_embed
+        qr_instance_embed = self.instance_embed.expand(B, -1, -1)[:, 0].unsqueeze(1)  # (B, 1, D)
+        x = x + gathered_pos_embed + qr_instance_embed
         
         # Process context images
-        B, K, N, C = z.shape
         z = rearrange(z, 'b b1 n c -> (b b1) n c')
         z = self.z_embedder(z)  # (B*B-1, N, D)
         z = rearrange(z, '(b b1) n d -> b b1 n d', b=B, b1=K)  # (B, B-1, N, D)
-        instance_embed = self.instance_embed.expand(B, -1, -1)[:, :K].unsqueeze(2)  # (B, B-1, 1, D)
-        pos_embed = self.pos_embed.expand(K, -1, -1).unsqueeze(0)  # (1, B-1, N, D)
-        z = z + instance_embed
-        z = z + pos_embed 
+        ct_instance_embed = self.instance_embed.expand(B, -1, -1)[:, 1:K+1].unsqueeze(2)  # (B, B-1, 1, D)
+        pos_embed = self.pos_embed.expand(K, -1, -1).unsqueeze(0)[:, :, :N]  # (1, B-1, N, D)
+        z = z + ct_instance_embed + pos_embed
         z = rearrange(z, 'b b1 n d -> b (b1 n) d')  # (B, (B-1)*N, D)
-            
+        
+        # Process visible parts
+        z_vis = self.z_embedder(z_vis)  # (B, V, D)
+        unmasked_indices = get_unmasked_indices(mask_indices, self.num_patches)
+        pos_embed = self.pos_embed.expand(B, -1, -1)  # (B, N, D)
+        gathered_pos_embed = torch.gather(
+            pos_embed, 1, unmasked_indices.unsqueeze(-1).expand(-1, -1, pos_embed.size(-1))
+        )
+        z_vis = z_vis + gathered_pos_embed + qr_instance_embed
+        
+        # Concat visible parts to context images
+        z = torch.cat([z, z_vis], dim=1)  # (B, (B-1)*N + V, D)
+        
         # if z is not None:
         #     # TODO: 
         #     z = self.z_embedder(z)  # (B, M, D)

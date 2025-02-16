@@ -2,11 +2,11 @@
 
 # GPUリストと対応する設定ファイルのリストを定義
 CONFIG_FILES=(
-  "./configs/exp_emar_ca_vae_loco_enc_id_big/loco_emar_breakfast_box.yml"
-  "./configs/exp_emar_ca_vae_loco_enc_id_big/loco_emar_juice_bottle.yml"
-  "./configs/exp_emar_ca_vae_loco_enc_id_big/loco_emar_pushpins.yml"
-  "./configs/exp_emar_ca_vae_loco_enc_id_big/loco_emar_screw_bag.yml"
-  "./configs/exp_emar_ca_vae_loco_enc_id_big/loco_emar_splicing_connectors.yml"
+  "./configs/exp_emar_ca_vae_loco_enc_id_curricula/loco_emar_breakfast_box.yml"
+  "./configs/exp_emar_ca_vae_loco_enc_id_curricula/loco_emar_juice_bottle.yml"
+  "./configs/exp_emar_ca_vae_loco_enc_id_curricula/loco_emar_pushpins.yml"
+  "./configs/exp_emar_ca_vae_loco_enc_id_curricula/loco_emar_screw_bag.yml"
+  "./configs/exp_emar_ca_vae_loco_enc_id_curricula/loco_emar_splicing_connectors.yml"
 )
 
 # 最大GPU数を指定

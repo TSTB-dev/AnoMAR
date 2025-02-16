@@ -5,11 +5,11 @@
 
 # GPUリストと対応する設定ファイルのリストを定義
 CONFIG_FILES=(
-  "./configs/exp_mim_enet_loco/loco_mim_breakfast_box.yml"
-  "./configs/exp_mim_enet_loco/loco_mim_juice_bottle.yml"
-  "./configs/exp_mim_enet_loco/loco_mim_pushpins.yml"
-  "./configs/exp_mim_enet_loco/loco_mim_screw_bag.yml"
-  "./configs/exp_mim_enet_loco/loco_mim_splicing_connectors.yml"
+  "./configs/exp_mim_vae_loco/loco_mim_breakfast_box.yml"
+  "./configs/exp_mim_vae_loco/loco_mim_juice_bottle.yml"
+  "./configs/exp_mim_vae_loco/loco_mim_pushpins.yml"
+  "./configs/exp_mim_vae_loco/loco_mim_screw_bag.yml"
+  "./configs/exp_mim_vae_loco/loco_mim_splicing_connectors.yml"
 )
 
 # 最大GPU数を指定

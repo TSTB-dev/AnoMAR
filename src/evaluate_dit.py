@@ -106,10 +106,16 @@ def main(args):
     model.eval()
     
     if args.recon_space == 'feature':
-        backbone_name = 'efficientnet-b4'
-        print(f"Using feature space reconstruction with {backbone_name} backbone")
-        backbone = get_backbone(model_name=backbone_name)
-        backbone.to(device).eval()
+        model_kwargs = {
+            'model_type': 'efficientnet-b4',
+            'outblocks': (1, 5, 9, 21),
+            'outstrides': (2, 4, 8, 16),
+            'pretrained': True,
+            'stride': 16
+        }
+        print(f"Using feature space reconstruction with {model_kwargs['model_type']} backbone")
+        feature_extractor = get_backbone(**model_kwargs)
+        feature_extractor.to(device).eval()
     
     # For visualization
     sample_indices = random.sample(range(min(len(anom_loader), len(normal_loader))), 2)
@@ -149,9 +155,10 @@ def main(args):
         
         # calculate scores
         def anomaly_score(x, x_rec):
-            mse = torch.mean((x - x_rec).pow(2), dim=(1, 2, 3))
-            mse = mse.view(-1, num_samples)
-            mse = torch.min(mse, dim=1).values
+            diff = torch.mean((x - x_rec).pow(2), dim=1)
+            mse = diff.view(-1, num_samples, diff_in_sh[1], diff_in_sh[2])
+            mse = torch.min(mse, dim=1).values  # (B, H, W)
+            mse = torch.mean(mse, dim=(1,2))
             
             anom_map = torch.mean((x - x_rec).pow(2), dim=1)  # (B*K, H, W)
             anom_map = anom_map.view(-1, num_samples, *anom_map.shape[1:])
@@ -165,10 +172,11 @@ def main(args):
             anom_score, anom_map = anomaly_score(images.repeat_interleave(num_samples, dim=0), x_rec)
             normal_scores.append(anom_score)
         elif args.recon_space == 'feature':
-            images = images.repeat_interleave(num_samples, dim=0)
-            images_feature = backbone(images)
-            x_rec_feature = backbone(x_rec)
-            anom_score, anom_map = anomaly_score(images_feature, x_rec_feature)
+            decoded_images = x_rec
+            decoded_images_org = images  # (B*K, 3, H, W)
+            features = feature_extractor(decoded_images)  # (B*K, c, h, w)
+            features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
+            anom_score, anom_map = anomaly_score(features, features_org)
             normal_scores.append(anom_score)
         else:
             raise ValueError("Invalid reconstruction space")        
@@ -210,10 +218,11 @@ def main(args):
             anom_score, anom_map = anomaly_score(images.repeat_interleave(num_samples, dim=0), x_rec)
             anom_scores.append(anom_score)
         elif args.recon_space == 'feature':
-            images = images.repeat_interleave(num_samples, dim=0)
-            images_feature = backbone(images)
-            x_rec_feature = backbone(x_rec)
-            anom_score, anom_map = anomaly_score(images_feature, x_rec_feature)
+            decoded_images = x_rec
+            decoded_images_org = images  # (B*K, 3, H, W)
+            features = feature_extractor(decoded_images)  # (B*K, c, h, w)
+            features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
+            anom_score, anom_map = anomaly_score(features, features_org)
             anom_scores.append(anom_score)
         else:
             raise ValueError("Invalid reconstruction space")
