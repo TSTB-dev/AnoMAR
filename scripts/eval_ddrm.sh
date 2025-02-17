@@ -21,7 +21,7 @@
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -38,25 +38,6 @@
 #     --batch_size 8 \
 #     --sample_indices 0 1
 
-# export CUDA_VISIBLE_DEVICES=4
-# python src/evaluate_ddrm.py \
-#     --num_masks 4 \
-#     --num_samples 1 \
-#     --num_inference_steps 100 \
-#     --num_iterations 1 \
-#     --quant_thresh 0.8 \
-#     --recon_space feature \
-#     --aggregation mean \
-#     --eta 0.85 \
-#     --etaB 1.0 \
-#     --output_dir ./results/ad_unet_vae_latent/capsule \
-#     --model_ckpt ./ddad_models/capsule \
-#     --config_path ./results/ad_unet_vae_latent/capsule/config.yaml \
-#     --device cuda \
-#     --save_images \
-#     --batch_size 8 \
-#     --sample_indices 0 1
-
 export CUDA_VISIBLE_DEVICES=4
 python src/evaluate_ddrm.py \
     --num_masks 1 \
@@ -68,9 +49,9 @@ python src/evaluate_ddrm.py \
     --aggregation mean \
     --eta 0.85 \
     --etaB 1.0 \
-    --output_dir ./results/ad_unet_vae_rot/carpet \
-    --model_ckpt ./ddad_models/carpet \
-    --config_path ./results/ad_unet_vae_rot/carpet/config.yaml \
+    --output_dir ./results/exp_dit_vae_ad/capsule \
+    --model_ckpt ./results/exp_dit_vae_ad/capsule/model_latest.pth \
+    --config_path ./results/exp_dit_vae_ad/capsule/config.yaml \
     --device cuda \
     --save_images \
     --batch_size 8 \
@@ -78,7 +59,26 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --num_iterations 1 \
+#     --quant_thresh 0.8 \
+#     --recon_space feature \
+#     --aggregation mean \
+#     --eta 0.85 \
+#     --etaB 1.0 \
+#     --output_dir ./results/ad_unet_vae_rot/carpet \
+#     --model_ckpt ./ddad_models/carpet \
+#     --config_path ./results/ad_unet_vae_rot/carpet/config.yaml \
+#     --device cuda \
+#     --save_images \
+#     --batch_size 8 \
+#     --sample_indices 0 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_ddrm.py \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -97,7 +97,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -135,7 +135,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -154,7 +154,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -173,7 +173,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -192,7 +192,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -211,7 +211,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -230,7 +230,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -249,7 +249,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -268,7 +268,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_ddrm.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --num_iterations 1 \
@@ -289,7 +289,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=1
 # python src/evaluate_repaint.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -307,7 +307,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=1
 # python src/evaluate_repaint.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -325,7 +325,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=1
 # python src/evaluate_repaint.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -343,7 +343,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=1
 # python src/evaluate_repaint.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -361,7 +361,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -377,7 +377,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -393,7 +393,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -409,7 +409,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -425,7 +425,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -441,7 +441,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -457,7 +457,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -473,7 +473,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -489,7 +489,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -505,7 +505,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -521,7 +521,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -537,7 +537,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -553,7 +553,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -567,7 +567,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \
@@ -583,7 +583,7 @@ python src/evaluate_ddrm.py \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_mar.py \
-#     --num_masks 4 \
+#     --num_masks 1 \
 #     --num_samples 1 \
 #     --num_inference_steps 50 \
 #    --start_step 64 \

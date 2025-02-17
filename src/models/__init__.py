@@ -116,25 +116,25 @@ def create_denising_model(
         #     num_heads_upsample=-1,
         #     use_fp16=False,
         # )
-        # return UNetModel(
-        #     image_size=in_res,
-        #     in_channels=in_channels,
-        #     model_channels=model_channels,
-        #     out_channels=out_channels,
-        #     num_res_blocks=num_blocks,
-        #     attention_resolutions=[2, 4, 8],
-        #     channel_mult=channel_mult,
-        #     num_heads=16,
-        #     num_heads_upsample=-1,
-        #     use_fp16=False,
-        # )
-        return UNetModelDDAD(
-            in_res,
-            64,
-            dropout=0.3,
-            n_heads=2,
+        return UNetModel(
+            image_size=in_res,
             in_channels=in_channels,
+            model_channels=model_channels,
+            out_channels=out_channels,
+            num_res_blocks=num_blocks,
+            attention_resolutions=[2, 4, 8],
+            channel_mult=channel_mult,
+            num_heads=16,
+            num_heads_upsample=-1,
+            use_fp16=False,
         )
+        # return UNetModelDDAD(
+        #     in_res,
+        #     64,
+        #     dropout=0.3,
+        #     n_heads=2,
+        #     in_channels=in_channels,
+        # )
     elif model_type == "dit":
         return DiT(
             input_size=in_res,

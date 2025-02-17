@@ -37,6 +37,7 @@ def parser_args():
     parser.add_argument('--config_path', type=str, help='Path to the config file')
     parser.add_argument('--device', type=str, default='cuda', help='Device to use')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
+    parser.add_argument('--save_all_images', action='store_true', help='Save all images')
     
     return parser.parse_args()
 
@@ -118,7 +119,7 @@ def main(args):
         feature_extractor.to(device).eval()
     
     # For visualization
-    sample_indices = random.sample(range(min(len(anom_loader), len(normal_loader))), 2)
+    sample_indices = random.sample(range(min(len(anom_loader), len(normal_loader))), 2) if not args.save_all_images else range(min(len(anom_loader), len(normal_loader)))
     sample_dict = {}
     
     # Evaluation on normal samples
@@ -158,7 +159,8 @@ def main(args):
             diff = torch.mean((x - x_rec).pow(2), dim=1)
             mse = diff.view(-1, num_samples, diff_in_sh[1], diff_in_sh[2])
             mse = torch.min(mse, dim=1).values  # (B, H, W)
-            mse = torch.mean(mse, dim=(1,2))
+            mse = mse.max(dim=1).values  # (B, W)
+            mse = mse.max(dim=1).values  # (B, )
             
             anom_map = torch.mean((x - x_rec).pow(2), dim=1)  # (B*K, H, W)
             anom_map = anom_map.view(-1, num_samples, *anom_map.shape[1:])
@@ -173,7 +175,7 @@ def main(args):
             normal_scores.append(anom_score)
         elif args.recon_space == 'feature':
             decoded_images = x_rec
-            decoded_images_org = images  # (B*K, 3, H, W)
+            decoded_images_org = vae.decode(org_latents / 0.2325)  # (B*K, 3, H, W)
             features = feature_extractor(decoded_images)  # (B*K, c, h, w)
             features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
             anom_score, anom_map = anomaly_score(features, features_org)
@@ -219,7 +221,7 @@ def main(args):
             anom_scores.append(anom_score)
         elif args.recon_space == 'feature':
             decoded_images = x_rec
-            decoded_images_org = images  # (B*K, 3, H, W)
+            decoded_images_org = vae.decode(org_latents / 0.2325)  # (B*K, 3, H, W)
             features = feature_extractor(decoded_images)  # (B*K, c, h, w)
             features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
             anom_score, anom_map = anomaly_score(features, features_org)
@@ -277,8 +279,11 @@ def main(args):
     print(f"Results saved at {output_dir / 'eval_results.json'}")
     
     if args.save_images:
-        save_images(sample_dict, anom_scores, args.output_dir, num_samples)
-        print(f"Images saved at {output_dir / 'results.png'}")
+        if args.save_all_images:
+            save_all_images(sample_dict, anom_scores, args.output_dir, num_samples)
+        else:
+            save_images(sample_dict, anom_scores, args.output_dir, num_samples)
+            print(f"Images saved at {output_dir / 'results.png'}")
 
 def save_images(sample_dict, anom_scores, output_dir, num_samples):
     output_dir = Path(output_dir)
@@ -321,6 +326,55 @@ def save_images(sample_dict, anom_scores, output_dir, num_samples):
     plt.savefig(output_dir / 'results.png')
     plt.close()
 
+def save_all_images(
+    sample_dict, 
+    anom_scores, 
+    output_dir, 
+    num_samples
+):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    min_score = min(anom_scores)
+    max_score = max(anom_scores)
+    
+    items = list(sample_dict.items())
+    items = tqdm(items)
+    for key, value in items:
+        fig, ax = plt.subplots(1, 5 + min(num_samples, 3), figsize=(25, 5))
+        font_color = 'blue'
+        ax[0].imshow(value['images'])
+        ax[0].set_title(f"Original {value['labels']}", color=font_color)
+        ax[0].axis('off')
+        
+        ax[1].imshow(value['noised_images'])
+        ax[1].set_title(f"Noised {value['labels']}", color=font_color)
+        ax[1].axis('off')
+        
+        ax[2].imshow(value['reconstructed_images'][0])
+        ax[2].set_title(f"Reconstructed {1}", color=font_color)
+        ax[2].axis('off')
+        
+        for j in range(1, min(num_samples, 3)):
+            ax[2 + j].imshow(value['reconstructed_images'][j])
+            ax[2 + j].set_title(f"Reconstructed {j + 1}", color=font_color)
+            ax[2 + j].axis('off')
+        
+        ax[2 + min(num_samples, 3)].imshow(value['anomaly_maps'], vmin=min_score, vmax=max_score)
+        ax[2 + min(num_samples, 3)].set_title(f"Anomaly Map {value['labels']}", color=font_color)
+        ax[2 + min(num_samples, 3)].axis('off')
+        
+        ax[3 + min(num_samples, 3)].imshow(value['gt_masks'], cmap='gray', vmin=0, vmax=1)
+        ax[3 + min(num_samples, 3)].set_title(f"GT Mask {value['labels']}", color=font_color)
+        ax[3 + min(num_samples, 3)].axis('off')
+        
+        plt.tight_layout()
+        plt.savefig(output_dir / f'{key}.png')
+        plt.close()
+    
+    print(f"Images saved at {output_dir}")
+    
+    
     
 
 if __name__ == '__main__':

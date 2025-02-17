@@ -28,7 +28,7 @@ data:
   num_workers: 1
   pin_memory: true
   train: true
-  transform_type: rotation
+  transform_type: default
 optimizer:
   grad_clip: 1.0
   max_lr: 0.001
@@ -43,7 +43,7 @@ logging:
   log_interval: 10
   save_interval: 100
   save_images: false
-  save_dir: 'results/ad_unet_vae/screw'
+  save_dir: 'results/exp_unet_vae_ad/screw'
 meta:
   seed: 42
   device: 'cuda'

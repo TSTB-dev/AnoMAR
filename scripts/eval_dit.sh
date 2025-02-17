@@ -1,204 +1,206 @@
 # # bottle  cable  capsule  carpet  grid  hazelnut  leather  metal_nut  pill  bottle  tile  toothbrush  transistor  wood  zipper
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/bottle \
-    --model_ckpt ./bottle \
-    --config_path ./results/ad_unet_vae_rot/bottle/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/bottle \
+#     --model_ckpt ./bottle \
+#     --config_path ./results/ad_unet_vae_rot/bottle/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/cable \
+#     --model_ckpt ./cable \
+#     --config_path ./results/ad_unet_vae_rot/cable/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_vae_ad/capsule \
+#     --model_ckpt ./results/exp_dit_vae_ad/capsule/model_latest.pth \
+#     --config_path ./results/exp_dit_vae_ad/capsule/config.yaml \
+#     --save_images \
+#     --save_all_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/carpet \
+#     --model_ckpt ./carpet \
+#     --config_path ./results/ad_unet_vae_rot/carpet/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/exp_dit_vae_ad/grid \
+#     --model_ckpt ./results/exp_dit_vae_ad/grid/model_latest.pth \
+#     --config_path ./results/exp_dit_vae_ad/grid/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/hazelnut \
+#     --model_ckpt ./hazelnut \
+#     --config_path ./results/ad_unet_vae_rot/hazelnut/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/exp_dit_vae_ad/leather \
+#     --model_ckpt ./results/exp_dit_vae_ad/leather/model_latest.pth \
+#     --config_path ./results/exp_dit_vae_ad/leather/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/metal_nut \
+#     --model_ckpt ./metal_nut \
+#     --config_path ./results/ad_unet_vae_rot/metal_nut/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
+
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/pill \
+#     --model_ckpt ./pill \
+#     --config_path ./results/ad_unet_vae_rot/pill/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
 
 export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
+python src/evaluate_dit.py \
     --num_samples 1 \
     --num_inference_steps 100 \
     --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/cable \
-    --model_ckpt ./cable \
-    --config_path ./results/ad_unet_vae_rot/cable/config.yaml \
+    --start_step 8 \
+    --output_dir ./results/exp_dit_vae_ad/screw \
+    --model_ckpt ./results/exp_dit_vae_ad/screw/model_latest.pth \
+    --config_path ./results/exp_dit_vae_ad/screw/config.yaml \
     --save_images \
     --device cuda \
-    --batch_size 1
+    --batch_size 1 \
+    --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_latent/capsule \
-    --model_ckpt ./capsule \
-    --config_path ./results/ad_unet_vae_latent/capsule/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/tile \
+#     --model_ckpt ./tile \
+#     --config_path ./results/ad_unet_vae_rot/tile/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/carpet \
-    --model_ckpt ./carpet \
-    --config_path ./results/ad_unet_vae_rot/carpet/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/toothbrush \
+#     --model_ckpt ./toothbrush \
+#     --config_path ./results/ad_unet_vae_rot/toothbrush/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/grid \
-    --model_ckpt ./grid \
-    --config_path ./results/ad_unet_vae_rot/grid/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/transistor \
+#     --model_ckpt ./transistor \
+#     --config_path ./results/ad_unet_vae_rot/transistor/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/hazelnut \
-    --model_ckpt ./hazelnut \
-    --config_path ./results/ad_unet_vae_rot/hazelnut/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/wood \
+#     --model_ckpt ./wood \
+#     --config_path ./results/ad_unet_vae_rot/wood/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/leather \
-    --model_ckpt ./leather \
-    --config_path ./results/ad_unet_vae_rot/leather/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/metal_nut \
-    --model_ckpt ./metal_nut \
-    --config_path ./results/ad_unet_vae_rot/metal_nut/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/pill \
-    --model_ckpt ./pill \
-    --config_path ./results/ad_unet_vae_rot/pill/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/screw \
-    --model_ckpt ./screw \
-    --config_path ./results/ad_unet_vae_rot/screw/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/tile \
-    --model_ckpt ./tile \
-    --config_path ./results/ad_unet_vae_rot/tile/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/toothbrush \
-    --model_ckpt ./toothbrush \
-    --config_path ./results/ad_unet_vae_rot/toothbrush/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/transistor \
-    --model_ckpt ./transistor \
-    --config_path ./results/ad_unet_vae_rot/transistor/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/wood \
-    --model_ckpt ./wood \
-    --config_path ./results/ad_unet_vae_rot/wood/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
-
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_ddad.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 16 \
-    --output_dir ./results/ad_unet_vae_rot/zipper \
-    --model_ckpt ./zipper \
-    --config_path ./results/ad_unet_vae_rot/zipper/config.yaml \
-    --save_images \
-    --device cuda \
-    --batch_size 1
+# export CUDA_VISIBLE_DEVICES=4
+# python src/evaluate_dit.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/ad_unet_vae_rot/zipper \
+#     --model_ckpt ./zipper \
+#     --config_path ./results/ad_unet_vae_rot/zipper/config.yaml \
+#     --save_images \
+#     --device cuda \
+#     --batch_size 1
 
 # ====================
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 4 \
 #     --num_inference_steps 100 \
 #     --recon_space latent \
@@ -211,7 +213,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 4 \
 #     --num_inference_steps 100 \
 #     --recon_space latent \
@@ -224,7 +226,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 4 \
 #     --num_inference_steps 100 \
 #     --recon_space latent \
@@ -237,7 +239,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 4 \
 #     --num_inference_steps 100 \
 #     --recon_space latent \
@@ -250,7 +252,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -263,7 +265,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -276,7 +278,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -289,7 +291,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -302,7 +304,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -315,7 +317,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -328,7 +330,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -341,7 +343,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -354,7 +356,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -367,7 +369,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -380,7 +382,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -393,7 +395,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -406,7 +408,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
@@ -419,7 +421,7 @@ python src/evaluate_ddad.py \
 #     --batch_size 1
 
 # export CUDA_VISIBLE_DEVICES=0
-# python src/evaluate_ddad.py \
+# python src/evaluate_dit.py \
 #     --num_samples 32 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
