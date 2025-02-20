@@ -18,6 +18,7 @@ from datasets import build_dataset
 from utils import get_optimizer, get_lr_scheduler
 from denoiser import get_denoiser, Denoiser
 from models import create_vae, AutoencoderKL
+from backbones import get_backbone
 
 import wandb
 from dotenv import load_dotenv
@@ -33,6 +34,22 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
+def postprocess(x):
+    x = x / 2 + 0.5
+    return x.clamp(0, 1)
+
+def postprocess_lpips(x):
+    # -> [-1, 1]
+    x = x * 2 - 1  # Assume x is in [0, 1]
+
+def convert2image(x):
+    if x.dim() == 3:
+        return x.permute(1, 2, 0).cpu().numpy()
+    elif x.dim() == 4:
+        return x.permute(0, 2, 3, 1).cpu().numpy()
+    else:
+        return x.cpu().numpy()
 
 def main(args):
     
@@ -55,10 +72,19 @@ def main(args):
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
     
+    dataset_config = config['data']
     device = config['meta']['device']
     batch_size = config['data']['batch_size']
-    
     train_dataset = build_dataset(**config['data'])
+    dataset_config['train'] = False
+    dataset_config['anom_only'] = True
+    anom_dataset = build_dataset(**dataset_config)
+    dataset_config['anom_only'] = False
+    dataset_config['normal_only'] = True
+    normal_dataset = build_dataset(**dataset_config)
+    anom_loader = DataLoader(anom_dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False)
+    normal_loader = DataLoader(normal_dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False)
+
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True, \
         pin_memory=config['data']['pin_memory'], num_workers=config['data']['num_workers'])
     
@@ -75,7 +101,18 @@ def main(args):
     model_ema = copy.deepcopy(model)
     model.to(device)
     model_ema.to(device)
-    
+
+    model_kwargs = {
+        'model_type': 'efficientnet-b4',
+        'outblocks': (1, 5, 9, 21),
+        'outstrides': (2, 4, 8, 16),
+        'pretrained': True,
+        'stride': 16
+    }
+    print(f"Using feature space reconstruction with {model_kwargs['model_type']} backbone")
+    feature_extractor = get_backbone(**model_kwargs)
+    feature_extractor.to(device).eval()
+
     optimizer = get_optimizer([model], **config['optimizer'])
     if config['optimizer']['scheduler_type'] == 'none':
         pass
@@ -136,6 +173,19 @@ def main(args):
             torch.save(model_ema.state_dict(), save_path)
             print(f"Model is saved at {save_dir}")
         
+        if (epoch + 1) % config["evaluation"]["eval_interval"] == 0:
+            evaluate(
+                model,
+                feature_extractor,
+                vae,
+                anom_loader,
+                normal_loader,
+                diff_in_sh,
+                epoch + 1,
+                config["evaluation"]["start_step"],
+                device  
+            )
+        
         if config['optimizer']['scheduler_type'] == 'none':
             pass
         else:
@@ -154,6 +204,85 @@ def main(args):
     
 def save_images(model, vae, tb_writer, epoch, i, device):
     pass
+
+@torch.no_grad()
+def evaluate(denoiser, feature_extractor, vae, anom_loader, normal_loader, in_sh, epoch, start_step, device):
+    denoiser.eval()
+    feature_extractor.eval()
+    vae.eval()
+    
+    print(f"Evaluating on {len(anom_loader)} anomalous samples and {len(normal_loader)} normal samples")
+    normal_scores = []
+    for i, batch in enumerate(normal_loader):
+        images = batch["samples"].to(device)
+        labels = batch["clslabels"].to(device)
+        # Prepare timesteps
+        t = torch.tensor([start_step] * len(images)).to(device)  # (B, )
+        
+        def perturb(x, t):
+            post = vae.encode(x)
+            z = post.sample().mul_(0.2325)  # (B, c, h, w)
+            
+            noised_z = denoiser.q_sample(z, t)  # (B, c, h, w)
+            noised_x = denoiser.q_sample(x, t)  # (B, c, h, w)
+            
+            return noised_z, z, noised_x
+        
+        noised_latents, org_latents, noised_x = perturb(images, t)  # (B, c, h, w)
+        
+        # decode
+        def denoising(noised_z, t, labels):
+            denoized_z = denoiser.denoise_from_intermediate(noised_z, t, labels)  
+            x_rec = vae.decode(denoized_z / 0.2325)  # (B, C, H, W)
+            return x_rec, denoized_z
+        x_rec, denoized_latents = denoising(noised_latents, t, labels)
+        
+        # calculate scores
+        def anomaly_score(x, x_rec):
+            diff = torch.mean((x - x_rec).pow(2), dim=1)
+            mse = diff.view(-1, in_sh[1], in_sh[2])
+            mse = torch.mean(mse, dim=(1, 2))  # (B, )
+            # mse = mse.max(dim=1).values  # (B, W)
+            # mse = mse.max(dim=1).values  # (B, )
+            
+            anom_map = torch.mean((x - x_rec).pow(2), dim=1)  # (B*K, H, W)
+            anom_map = anom_map.view(-1, *anom_map.shape[1:])
+            # anom_map = torch.min(anom_map, dim=1).values  # (B, H, W)
+            return mse, anom_map
+        
+        decoded_images = vae.decode(org_latents / 0.2325)
+        features_rec = feature_extractor(x_rec)
+        features_org = feature_extractor(decoded_images)
+        anom_score, anom_map = anomaly_score(features_rec, features_org)
+        normal_scores.append(anom_score)
+    
+    normal_scores = torch.cat(normal_scores, dim=0)
+    
+    anom_scores = []
+    for i, batch in enumerate(anom_loader):
+        images = batch["samples"].to(device)
+        labels = batch["clslabels"].to(device)
+        # Prepare timesteps
+        t = torch.tensor([start_step] * len(images)).to(device)
+        
+        noised_latents, org_latents, noised_x = perturb(images, t)  # (B, c, h, w)
+        x_rec, denoized_latents = denoising(noised_latents, t, labels)
+        
+        decoded_images = vae.decode(org_latents / 0.2325)
+        features_rec = feature_extractor(x_rec)
+        features_org = feature_extractor(decoded_images)
+        anom_score, anom_map = anomaly_score(features_rec, features_org)
+        
+        anom_scores.append(anom_score)
+    anom_scores = torch.cat(anom_scores, dim=0)
+
+    y_true = torch.cat([torch.zeros_like(normal_scores), torch.ones_like(anom_scores)])
+    y_score = torch.cat([normal_scores, anom_scores])
+    from sklearn.metrics import roc_auc_score
+    auc = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
+    print(f"AUC: {auc} at epoch {epoch}")
+    wandb.log({"AUC": auc})
+    return auc
 
 if __name__ == "__main__":
     args = parse_args()

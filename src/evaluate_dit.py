@@ -7,6 +7,7 @@ from tensorboardX import SummaryWriter
 
 from PIL import Image
 from tqdm import tqdm
+import lpips
 
 import random
 import numpy as np
@@ -44,6 +45,10 @@ def parser_args():
 def postprocess(x):
     x = x / 2 + 0.5
     return x.clamp(0, 1)
+
+def postprocess_lpips(x):
+    # -> [-1, 1]
+    x = x * 2 - 1  # Assume x is in [0, 1]
 
 def convert2image(x):
     if x.dim() == 3:
@@ -159,8 +164,9 @@ def main(args):
             diff = torch.mean((x - x_rec).pow(2), dim=1)
             mse = diff.view(-1, num_samples, diff_in_sh[1], diff_in_sh[2])
             mse = torch.min(mse, dim=1).values  # (B, H, W)
-            mse = mse.max(dim=1).values  # (B, W)
-            mse = mse.max(dim=1).values  # (B, )
+            mse = torch.mean(mse, dim=(1, 2))  # (B, )
+            # mse = mse.max(dim=1).values  # (B, W)
+            # mse = mse.max(dim=1).values  # (B, )
             
             anom_map = torch.mean((x - x_rec).pow(2), dim=1)  # (B*K, H, W)
             anom_map = anom_map.view(-1, num_samples, *anom_map.shape[1:])
@@ -178,14 +184,28 @@ def main(args):
             decoded_images_org = vae.decode(org_latents / 0.2325)  # (B*K, 3, H, W)
             features = feature_extractor(decoded_images)  # (B*K, c, h, w)
             features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
+            
+            pix_map = torch.mean((decoded_images - decoded_images_org).pow(2), dim=1)  # (B*K, H, W)
+            pix_map = pix_map.view(-1, num_samples, *pix_map.shape[1:]) 
+            pix_map = torch.min(pix_map, dim=1).values  # (B, H, W)
+            pix_score = torch.mean(pix_map, dim=(1, 2))  # (B, )
             anom_score, anom_map = anomaly_score(features, features_org)
-            normal_scores.append(anom_score)
+            # normalize and combine
+            # anom_score = 0.5 * anom_score + 0.5 * pix_score
+            # anom_map = pix_map
+            # loss_fn_alex = lpips.LPIPS(net='alex', spatial=True).to(device)
+            loss_fn_vgg_sp = lpips.LPIPS(net='vgg', spatial=True).to(device)
+            # loss_fn_vgg = lpips.LPIPS(net='vgg', spatial=False).to(device)
+            # d_alex = loss_fn_alex(decoded_images, decoded_images_org)
+            anom_map = loss_fn_vgg_sp(decoded_images, decoded_images_org)
+            anom_score = anom_map.mean()
+            normal_scores.append(anom_score.item())
         else:
             raise ValueError("Invalid reconstruction space")        
 
         if i in sample_indices:
             sample_dict[f"normal_{i}"] = {
-                "images": convert2image(postprocess(images))[0],  # (H, W, C)
+                "images": convert2image(postprocess(decoded_images_org))[0],  # (H, W, C)
                 "noised_images": convert2image(postprocess(noised_x).reshape(-1, num_samples, *noised_x.shape[1:])[0][0]),  # (H, W, C)
                 "reconstructed_images": convert2image(postprocess(x_rec).reshape(-1, num_samples, *x_rec.shape[1:])[0]),  # (K, H, W, C)
                 "anomaly_maps": convert2image(anom_map[0]),  # (H, W)
@@ -193,7 +213,7 @@ def main(args):
                 "labels": "normal", 
             }
     
-    normal_scores = torch.cat(normal_scores)
+    normal_scores = torch.Tensor(normal_scores)
     
     # Evaluation on anomalous samples
     print("Evaluating on anomalous samples✖️")
@@ -224,21 +244,37 @@ def main(args):
             decoded_images_org = vae.decode(org_latents / 0.2325)  # (B*K, 3, H, W)
             features = feature_extractor(decoded_images)  # (B*K, c, h, w)
             features_org = feature_extractor(decoded_images_org)  # (B*K, c, h, w)
+            pix_map = torch.mean((decoded_images - decoded_images_org).pow(2), dim=1)  # (B*K, H, W)
+            pix_map = pix_map.view(-1, num_samples, *pix_map.shape[1:]) 
+            pix_map = torch.min(pix_map, dim=1).values  # (B, H, W)
+            pix_score = torch.mean(pix_map, dim=(1, 2))  # (B, )
             anom_score, anom_map = anomaly_score(features, features_org)
-            anom_scores.append(anom_score)
+            # normalize and combine
+            # anom_score = (anom_score - anom_score.min()) / (anom_score.max() - anom_score.min() + 1e-6)
+            # pix_score = (pix_score - pix_score.min()) / (pix_score.max() - pix_score.min() + 1e-6)
+            # anom_score = 0.5 * anom_score + 0.5 * pix_score
+            # anom_map = pix_map
+            # anom_score, anom_map = anomaly_score(features, features_org)
+            
+            loss_fn_vgg_sp = lpips.LPIPS(net='vgg', spatial=True).to(device)
+            # loss_fn_vgg = lpips.LPIPS(net='vgg', spatial=False).to(device)
+            anom_map = loss_fn_vgg_sp(decoded_images, decoded_images_org)
+            anom_score = anom_map.mean()
+            
+            anom_scores.append(anom_score.item())
         else:
             raise ValueError("Invalid reconstruction space")
         
         if i in sample_indices:
             sample_dict[f"anom_{i}"] = {
-                "images": convert2image(postprocess(images))[0],  
+                "images": convert2image(postprocess(decoded_images_org))[0],  
                 "noised_images": convert2image(postprocess(noised_x).reshape(-1, num_samples, *noised_x.shape[1:])[0][0]),
                 "reconstructed_images": convert2image(postprocess(x_rec).reshape(-1, num_samples, *x_rec.shape[1:])[0]),
                 "anomaly_maps": convert2image(anom_map[0]),
                 "gt_masks": convert2image(masks)[0],
                 "labels": "anomalous"
             }
-    anom_scores = torch.cat(anom_scores)
+    anom_scores = torch.Tensor(anom_scores)
     
     print("Calculating AUC...🧑‍⚕️")
     print(f"===========================================")
@@ -255,9 +291,9 @@ def main(args):
     for anom_type in unique_anom_types:
         y_true = torch.cat([torch.zeros_like(normal_scores), torch.ones_like(anom_scores[np.array(anom_types) == anom_type])])
         y_score = torch.cat([normal_scores, anom_scores[np.array(anom_types) == anom_type]])
-        auc = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
-        auc_dict[anom_type] = auc
-        print(f"AUC [{anom_type}]: {auc:.4f}")
+        auc_cat = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
+        auc_dict[anom_type] = auc_cat
+        print(f"AUC [{anom_type}]: {auc_cat:.4f}")
     print(f"===========================================")
     
     print("Saving results...📁")
@@ -280,6 +316,7 @@ def main(args):
     
     if args.save_images:
         if args.save_all_images:
+            # import pdb; pdb.set_trace()
             save_all_images(sample_dict, anom_scores, args.output_dir, num_samples)
         else:
             save_images(sample_dict, anom_scores, args.output_dir, num_samples)

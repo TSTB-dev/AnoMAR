@@ -44,6 +44,9 @@ logging:
   save_interval: 100
   save_images: false
   save_dir: 'results/exp_unet_vae_ad/grid'
+evaluation:
+  eval_interval: 10
+  start_step: 8
 meta:
   seed: 42
   device: 'cuda'

@@ -58,11 +58,12 @@
 #     --num_samples 1 \
 #     --num_inference_steps 100 \
 #     --recon_space feature \
-#     --start_step 32 \
+#     --start_step 8 \
 #     --output_dir ./results/exp_dit_vae_ad/grid \
 #     --model_ckpt ./results/exp_dit_vae_ad/grid/model_latest.pth \
 #     --config_path ./results/exp_dit_vae_ad/grid/config.yaml \
 #     --save_images \
+#     --save_all_images \
 #     --device cuda \
 #     --batch_size 1
 
@@ -118,19 +119,57 @@
 #     --device cuda \
 #     --batch_size 1
 
-export CUDA_VISIBLE_DEVICES=4
-python src/evaluate_dit.py \
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
     --num_samples 1 \
     --num_inference_steps 100 \
     --recon_space feature \
     --start_step 8 \
-    --output_dir ./results/exp_dit_vae_ad/screw \
-    --model_ckpt ./results/exp_dit_vae_ad/screw/model_latest.pth \
-    --config_path ./results/exp_dit_vae_ad/screw/config.yaml \
-    --save_images \
+    --output_dir ./results/exp_unet_vae_ad/screw \
+    --model_ckpt ./results/exp_unet_vae_ad/screw/model_latest.pth \
+    --config_path ./results/exp_unet_vae_ad/screw/config.yaml \
     --device cuda \
     --batch_size 1 \
     --save_all_images \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 16 \
+    --output_dir ./results/exp_unet_vae_ad/screw \
+    --model_ckpt ./results/exp_unet_vae_ad/screw/model_latest.pth \
+    --config_path ./results/exp_unet_vae_ad/screw/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+    --save_all_images \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 32 \
+    --output_dir ./results/exp_unet_vae_ad/screw \
+    --model_ckpt ./results/exp_unet_vae_ad/screw/model_latest.pth \
+    --config_path ./results/exp_unet_vae_ad/screw/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+    --save_all_images \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 48 \
+#     --output_dir ./results/exp_unet_vae_ad/grid \
+#     --model_ckpt ./results/exp_unet_vae_ad/grid/model_latest.pth \
+#     --config_path ./results/exp_unet_vae_ad/grid/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
 # export CUDA_VISIBLE_DEVICES=4
 # python src/evaluate_dit.py \
