@@ -4,7 +4,7 @@ diffusion:
   target_channels: 3
   z_channels: 768
   depth: 2
-  width: 256
+  width: 512
   num_sampling_steps: '100'
   ema_decay: 0.999
   learn_sigma: false

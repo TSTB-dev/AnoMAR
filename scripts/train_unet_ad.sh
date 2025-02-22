@@ -5,25 +5,26 @@ GPU_LIST=(0 1 2 3 4 5 6 7)
 
 # GPUリストと対応する設定ファイルのリストを定義
 CONFIG_FILES=(
-  # "configs/exp_unet_feature_ad/bottle.yml"
-  # "configs/exp_unet_feature_ad/capsule.yml"
-  # "configs/exp_unet_feature_ad/grid.yml"
-  # "configs/exp_unet_feature_ad/leather.yml"
-  # "configs/exp_unet_feature_ad/metal_nut.yml"
-  # "configs/exp_unet_feature_ad/pill.yml"
-  # "configs/exp_unet_feature_ad/screw.yml"
-  # "configs/exp_unet_feature_ad/toothbrush.yml"
-  # "configs/exp_unet_feature_ad/wood.yml"
-  # "configs/exp_unet_feature_ad/cable.yml"
-  # "configs/exp_unet_feature_ad/carpet.yml"
-  # "configs/exp_unet_feature_ad/hazelnut.yml"
-  # "configs/exp_unet_feature_ad/tile.yml"
+  "configs/exp_unet_feature_ad/bottle.yml"
+  "configs/exp_unet_feature_ad/capsule.yml"
+  "configs/exp_unet_feature_ad/grid.yml"
+  "configs/exp_unet_feature_ad/leather.yml"
+  "configs/exp_unet_feature_ad/metal_nut.yml"
+  "configs/exp_unet_feature_ad/pill.yml"
+  "configs/exp_unet_feature_ad/screw.yml"
+  "configs/exp_unet_feature_ad/toothbrush.yml"
+  "configs/exp_unet_feature_ad/wood.yml"
+  "configs/exp_unet_feature_ad/cable.yml"
+  "configs/exp_unet_feature_ad/carpet.yml"
+  "configs/exp_unet_feature_ad/hazelnut.yml"
+  "configs/exp_unet_feature_ad/tile.yml"
   "configs/exp_unet_feature_ad/transistor.yml"
-  # "configs/exp_unet_feature_ad/zipper.yml"
+  "configs/exp_unet_feature_ad/zipper.yml"
 )
 
 # メモリ使用量の上限 (1GB = 1024MB)
-MEMORY_LIMIT_MB=3000
+# 140 GB => 143360 MB
+MEMORY_LIMIT_MB=140000
 
 # GPUの空きを待つ関数
 wait_for_free_gpu() {
