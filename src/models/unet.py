@@ -562,7 +562,7 @@ class QKVAttentionLegacy(nn.Module):
         bs, width, length = qkv.shape
         assert width % (3 * self.n_heads) == 0
         ch = width // (3 * self.n_heads)
-        qkv = qkv.half()
+        # qkv = qkv.half()
 
         qkv =   self.rearrange(
             qkv, "b (three h d) s -> b s three h d", three=3, h=self.n_heads

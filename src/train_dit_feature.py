@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
 import numpy as np
+from tqdm import tqdm
 from pathlib import Path
 
 import copy
@@ -19,6 +20,8 @@ from utils import get_optimizer, get_lr_scheduler
 from denoiser import get_denoiser, Denoiser
 from models import create_vae, AutoencoderKL
 from backbones import get_backbone
+
+from einops import rearrange
 
 import wandb
 from dotenv import load_dotenv
@@ -95,13 +98,15 @@ def main(args):
     img_size = config['data']['img_size']
     # diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
     # diff_in_sh = (3, img_size, img_size)
-    diff_in_sh = (272, img_size // 16, img_size // 16)
+    diff_in_sh = (272, 16, 16)
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     ema_decay = config['diffusion']['ema_decay']
     model_ema = copy.deepcopy(model)
     model.to(device)
     model_ema.to(device)
+    
+    # feature_ln = torch.nn.LayerNorm(diff_in_sh[0]).to(device)
 
     model_kwargs = {
         'model_type': 'efficientnet-b4',
@@ -111,14 +116,16 @@ def main(args):
         'stride': 16
     }
     print(f"Using feature space reconstruction with {model_kwargs['model_type']} backbone")
+    
     feature_extractor = get_backbone(**model_kwargs)
     feature_extractor.to(device).eval()
 
+    # optimizer = get_optimizer([model, feature_ln], **config['optimizer'])
     optimizer = get_optimizer([model], **config['optimizer'])
     if config['optimizer']['scheduler_type'] == 'none':
         pass
     else:
-        scheduler = get_lr_scheduler(optimizer, **config['optimizer'])
+        scheduler = get_lr_scheduler(optimizer, **config['optimizer'], iter_per_epoch=len(train_loader))
 
     save_dir = Path(config['logging']['save_dir'])
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -129,9 +136,21 @@ def main(args):
     with open(save_path, 'w') as f:
         yaml.dump(config, f)
     print(f"Config is saved at {save_path}")
+
+    feature_extractor.eval()
+    print(f"Computing global feature statistics for {len(train_dataset)} samples")
+    features = []
+    for i, data in tqdm(enumerate(train_loader), total=len(train_loader)):
+        img = data["samples"].to(device)
+        with torch.no_grad():
+            x, _ = feature_extractor(img)
+            features.append(x)
+    features = torch.cat(features, dim=0)   # (N, c, h, w)
+    avg_glo = features.mean(dim=(0, 2, 3))  # (c, )
+    std_glo = features.std(dim=(0, 2, 3))  # (c, )
     
     model.train()
-    feature_extractor.eval()
+    print(f"Steps per epoch: {len(train_loader)}")
     for epoch in range(config['optimizer']['num_epochs']):
         for i, data in enumerate(train_loader):
             img, labels = data["samples"], data["clslabels"]    # (B, C, H, W), (B,)
@@ -142,10 +161,29 @@ def main(args):
             with torch.no_grad():
                 # posterior = vae.encode(img)  # (B, c, h, w)
                 # x = posterior.sample().mul_(0.2325)  # (B, c, h, w)
-                x = feature_extractor(img)
+                x, _ = feature_extractor(img)  # (B, c, h, w)
+                
                 # Normalize x
-                x = x / x.norm(dim=1, keepdim=True)
-            
+                x = (x - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
+                
+                # Logging feature distribution stats
+                avg_x = x.mean()
+                std_x = x.std()
+                min_x = x.min()
+                max_x = x.max()
+                # tb_writer.add_scalar("Feature/mean", avg_x.mean())
+                # tb_writer.add_scalar("Feature/std", std_x.mean())
+                # tb_writer.add_scalar("Feature/min", min_x.mean())
+                # tb_writer.add_scalar("Feature/max", max_x.mean())
+                # wandb.log({"Feature/mean": avg_x.mean(), "Feature/std": std_x.mean()})
+                # wandb.log({"Feature/min": min_x.mean(), "Feature/max": max_x.mean()})
+                # print(f"Feature stats: mean {avg_x}, std {std_x}, min {min_x}, max {max_x}")
+                
+                # Normalize x
+                # x = x / x.norm(dim=1, keepdim=True)
+            # x = rearrange(x, 'b c h w -> b (h w) c')
+            # x = feature_ln(x)  # LN
+            # x = rearrange(x, 'b (h w) c -> b c h w', h=16, w=16)
             # x = img
             # forward
             # img = _process_inputs(img)
@@ -155,9 +193,17 @@ def main(args):
             optimizer.zero_grad()
             loss.backward()
             
+            # Log gradients stats
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    # print(name, param.grad.data.norm(2).item())
+                    wandb.log({f"Grad/{name}": param.grad.data.norm(2).item()})
+                    
             if config['optimizer']['grad_clip']:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config['optimizer']['grad_clip'])
             optimizer.step()
+            
+            scheduler.step()
             
             # update ema
             for ema_param, model_param in zip(model_ema.parameters(), model.parameters()):
@@ -188,7 +234,8 @@ def main(args):
                 diff_in_sh,
                 epoch + 1,
                 config["evaluation"]["start_step"],
-                device  
+                device,
+                (avg_glo, std_glo)
             )
         
         if config['optimizer']['scheduler_type'] == 'none':
@@ -211,7 +258,9 @@ def save_images(model, vae, tb_writer, epoch, i, device):
     pass
 
 @torch.no_grad()
-def evaluate(denoiser, feature_extractor, vae, anom_loader, normal_loader, in_sh, epoch, start_step, device):
+def evaluate(denoiser, feature_extractor, vae, anom_loader, normal_loader, in_sh, epoch, start_step, device, \
+    global_stats):
+    avg_glo, std_glo = global_stats
     denoiser.eval()
     feature_extractor.eval()
     
@@ -224,7 +273,10 @@ def evaluate(denoiser, feature_extractor, vae, anom_loader, normal_loader, in_sh
         t = torch.tensor([start_step] * len(images)).to(device)  # (B, )
         
         def perturb(x, t):
-            z = feature_extractor(x)  # (B, c, h, w)
+            z, _ = feature_extractor(x)  # (B, c, h, w)
+            
+            # Normalize z
+            z = (z - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
             noised_z = denoiser.q_sample(z, t)  # (B, c, h, w)
             
             return noised_z, z, 

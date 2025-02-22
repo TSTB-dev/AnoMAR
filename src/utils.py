@@ -272,6 +272,7 @@ def get_optimizer(
             params,
             lr=start_lr,
             weight_decay=weight_decay,
+            betas=kwargs.get("betas", (0.9, 0.999)),
         )
     elif optimizer_name == "sgd":
         optimizer = SGD(
@@ -292,6 +293,7 @@ def get_lr_scheduler(
     min_lr: float,
     warmup_epochs: int,
     num_epochs: int,
+    iter_per_epoch: int,
     **kwargs: Any,
 ):
     """Get learning rate scheduler.
@@ -308,14 +310,14 @@ def get_lr_scheduler(
     if scheduler_type == "cosine":
         return torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, 
-            T_max=num_epochs,
+            T_max=iter_per_epoch * num_epochs,
             eta_min=min_lr,
         )
     elif scheduler_type == "warmup_cosine":
         return WarmupCosineSchedule(
             optimizer=optimizer,
-            warmup_steps=warmup_epochs,
-            t_total=num_epochs,
+            warmup_steps=warmup_epochs * iter_per_epoch,
+            t_total=num_epochs * iter_per_epoch,
             lr_start=max_lr,
             lr_end=min_lr,
         )
