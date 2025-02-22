@@ -24,7 +24,7 @@ CONFIG_FILES=(
 
 # メモリ使用量の上限 (1GB = 1024MB)
 # 140 GB => 143360 MB
-MEMORY_LIMIT_MB=140000
+MEMORY_LIMIT_MB=15000
 
 # GPUの空きを待つ関数
 wait_for_free_gpu() {

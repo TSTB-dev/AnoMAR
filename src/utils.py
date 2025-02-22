@@ -194,51 +194,58 @@ class AverageMeter(object):
     def get_avg(self):
         return self.avg
 
-class WarmupCosineSchedule:
-    def __init__(
-        self,
-        optimizer: torch.optim.Optimizer,
-        warmup_steps: int,
-        t_total: int,
-        lr_start: float,
-        lr_end: float,
-    ):
+class WarmupCosineAnnealingScheduler:
+    def __init__(self, optimizer, warmup_steps: int, t_total: int, init_lr: float, peak_lr: float):
+        """
+        Args:
+            optimizer (Optimizer): The optimizer to update.
+            warmup_steps (int): Number of steps to warm up.
+            t_total (int): Total number of steps for the schedule.
+            init_lr (float): Initial learning rate.
+            peak_lr (float): Peak learning rate after warmup.
+        """
         self.optimizer = optimizer
         self.warmup_steps = warmup_steps
         self.t_total = t_total
-        self.lr_start = lr_start
-        self.lr_end = lr_end
-        self.current_step = 0
+        self.init_lr = init_lr
+        self.peak_lr = peak_lr
+        self.min_lr = 1e-6
+        self.step_num = 0
+        
+        # Initialize the optimizer's learning rate.
+        self._set_lr(init_lr)
+
+    def _set_lr(self, lr: float):
+        """Sets the learning rate for all parameter groups."""
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr
+        self.last_lr = lr
 
     def step(self):
-        self.current_step += 1
-        if self.current_step <= self.warmup_steps:
-            lr = self.lr_start + (self.lr_end - self.lr_start) * self.current_step / self.warmup_steps
+        """Updates the learning rate based on the current step."""
+        self.step_num += 1
+        
+        if self.step_num < self.warmup_steps:
+            # Linear warmup: increase lr from init_lr to peak_lr.
+            lr = self.init_lr + (self.peak_lr - self.init_lr) * (self.step_num / self.warmup_steps)
         else:
-            lr = self.lr_end + 0.5 * (self.lr_start - self.lr_end) * (
-                1 + math.cos(math.pi * (self.current_step - self.warmup_steps) / (self.t_total - self.warmup_steps))
-            )
-        for param_group in self.optimizer.param_groups:
-            param_group["lr"] = lr
+            # Cosine annealing: decay lr from peak_lr to min_lr.
+            progress = (self.step_num - self.warmup_steps) / max(1, (self.t_total - self.warmup_steps))
+            cosine_decay = 0.5 * (1 + math.cos(math.pi * progress))
+            lr = self.min_lr + (self.peak_lr - self.min_lr) * cosine_decay
+        
+        self._set_lr(lr)
 
-    def zero_grad(self):
-        self.optimizer.zero_grad()
-
-    def state_dict(self):
-        return self.optimizer.state_dict()
-
-    def load_state_dict(self, state_dict):
-        self.optimizer.load_state_dict(state_dict)
-
-    def get_lr(self):
-        return self.optimizer.param_groups[0]["lr"]
+    def get_last_lr(self):
+        """Returns the last set learning rate."""
+        return self.last_lr
     
 
 def get_optimizer(
     models: List[nn.Module],
     *,
     optimizer_name: str,
-    start_lr: float,
+    init_lr: float,
     weight_decay: float,
     **kwargs: Any,
 ):
@@ -246,7 +253,7 @@ def get_optimizer(
     Args:
         model (nn.Module): Model to optimize
         optimizer_name (str): Name of optimizer
-        start_lr (float): Initial learning rate
+        init_lr (float): Initial learning rate
         max_lr (float): Maximum learning rate
         min_lr (float): Minimum learning rate
         weight_decay (float): Weight decay
@@ -258,26 +265,26 @@ def get_optimizer(
     for model in models:
         params += list(model.parameters())
     
-    if isinstance(start_lr, str):
-        start_lr = float(start_lr)
+    if isinstance(init_lr, str):
+        init_lr = float(init_lr)
     
     if optimizer_name == "adam":
         optimizer = Adam(
             params,
-            lr=start_lr,
+            lr=init_lr,
             weight_decay=weight_decay,
         )
     elif optimizer_name == "adamw":
         optimizer = AdamW(
             params,
-            lr=start_lr,
+            lr=init_lr,
             weight_decay=weight_decay,
             betas=kwargs.get("betas", (0.9, 0.999)),
         )
     elif optimizer_name == "sgd":
         optimizer = SGD(
             params,
-            lr=start_lr,
+            lr=init_lr,
             weight_decay=weight_decay,
         )
     else:
@@ -289,8 +296,8 @@ def get_lr_scheduler(
     optimizer: torch.optim.Optimizer,
     *,
     scheduler_type: str,
-    max_lr: float,
-    min_lr: float,
+    init_lr: float,
+    peak_lr: float,
     warmup_epochs: int,
     num_epochs: int,
     iter_per_epoch: int,
@@ -311,15 +318,15 @@ def get_lr_scheduler(
         return torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, 
             T_max=iter_per_epoch * num_epochs,
-            eta_min=min_lr,
+            eta_min=init_lr,
         )
     elif scheduler_type == "warmup_cosine":
-        return WarmupCosineSchedule(
+        return WarmupCosineAnnealingScheduler(
             optimizer=optimizer,
             warmup_steps=warmup_epochs * iter_per_epoch,
             t_total=num_epochs * iter_per_epoch,
-            lr_start=max_lr,
-            lr_end=min_lr,
+            init_lr=init_lr,
+            peak_lr=peak_lr,
         )
     else:
         raise ValueError(f"Invalid scheduler: {scheduler_type}")

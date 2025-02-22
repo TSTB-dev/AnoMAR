@@ -31,12 +31,12 @@ data:
   transform_type: default
 optimizer:
   grad_clip: 1.0
-  max_lr: 0.001
-  min_lr: 1.0e-06
+  init_lr: 0.000001
+  peak_lr: 0.0001
+  final_lr: 0.000005
   num_epochs: 1000
   optimizer_name: adamw
-  scheduler_type: cosine
-  start_lr: 0.0002
+  scheduler_type: warmup_cosine
   warmup_epochs: 40
   weight_decay: 1.0e-04
 logging:
@@ -45,7 +45,7 @@ logging:
   save_images: false
   save_dir: 'results/exp_unet_feature_ad/transistor'
 evaluation:
-  eval_interval: 10
+  eval_interval: 50
   start_step: 8
 meta:
   seed: 42

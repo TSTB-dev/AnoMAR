@@ -212,7 +212,7 @@ def main(args):
             if i % config["logging"]["log_interval"] == 0:
                 print(f"Epoch {epoch}, Iter {i}, Loss {loss.item()}")      
                 tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader) + i)  
-                wandb.log({"Loss": loss.item()})
+                wandb.log({"Loss": loss.item(), "LR": scheduler.get_last_lr()})
                 
                 if config["logging"]["save_images"]:
                     save_images(model_ema, vae, tb_writer, epoch, i, device)
