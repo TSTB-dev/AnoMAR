@@ -7,6 +7,7 @@ debug/
 ddad_models/
 wandb/
 results_*/
+exp_unet_feature_ad/
 
 
 # Byte-compiled / optimized / DLL files

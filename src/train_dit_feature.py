@@ -89,7 +89,7 @@ def main(args):
     normal_loader = DataLoader(normal_dataset, batch_size=1, shuffle=False, num_workers=1, drop_last=False)
 
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True, \
-        pin_memory=config['data']['pin_memory'], num_workers=config['data']['num_workers'])
+        pin_memory=config['data']['pin_memory'], num_workers=config['data']['num_workers'], drop_last=True)
     
     vae: AutoencoderKL = create_vae(**config['vae'])
     vae.to(device).eval()
