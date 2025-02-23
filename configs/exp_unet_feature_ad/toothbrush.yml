@@ -38,7 +38,7 @@ optimizer:
   optimizer_name: adamw
   scheduler_type: warmup_cosine
   warmup_epochs: 40
-  weight_decay: 1.0e-04
+  weight_decay: 0
 logging:
   log_interval: 10
   save_interval: 100
