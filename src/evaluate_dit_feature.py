@@ -88,12 +88,14 @@ def main(args):
     dataset_config = config['data']
     dataset_config['batch_size'] = batch_size
     dataset_config['transform_type'] = 'default'
+    train_dataset = build_dataset(**dataset_config)
     dataset_config['train'] = False
     dataset_config['anom_only'] = True
     anom_dataset = build_dataset(**dataset_config)
     dataset_config['anom_only'] = False
     dataset_config['normal_only'] = True
     normal_dataset = build_dataset(**dataset_config)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
     anom_loader = DataLoader(anom_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
     normal_loader = DataLoader(normal_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
 
@@ -130,6 +132,18 @@ def main(args):
         sample_indices = []
     sample_dict = {}
     
+    feature_extractor.eval()
+    print(f"Computing global feature statistics for {len(train_dataset)} samples")
+    features = []
+    for i, data in tqdm(enumerate(train_loader), total=len(train_loader)):
+        img = data["samples"].to(device)
+        with torch.no_grad():
+            x, _ = feature_extractor(img)
+            features.append(x)
+    features = torch.cat(features, dim=0)   # (N, c, h, w)
+    avg_glo = features.mean(dim=(0, 2, 3))  # (c, )
+    std_glo = features.std(dim=(0, 2, 3))  # (c, )
+    
     # Evaluation on normal samples
     print("Evaluating on normal samples✔️")
     normal_scores = []
@@ -141,7 +155,9 @@ def main(args):
         t = torch.tensor([args.start_step] * num_samples * len(images)).to(device)  # (B * K, )
         
         def perturb(x, t):
-            z = feature_extractor(x)
+            z, _ = feature_extractor(x)
+            # Normalize x
+            z = (z - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
             z = z.repeat_interleave(num_samples, dim=0)  # (B*K, c, h, w)
             
             noised_z = model.q_sample(z, t)  # (B*K, c, h, w)
@@ -281,9 +297,12 @@ def main(args):
     print(f"===========================================")
     unique_anom_types = list(sorted(set(anom_types)))
     auc_dict = {}
+    scores_dict = {}
+    scores_dict["good"] = normal_scores.cpu().numpy().tolist()
     for anom_type in unique_anom_types:
         y_true = torch.cat([torch.zeros_like(normal_scores), torch.ones_like(anom_scores[np.array(anom_types) == anom_type])])
         y_score = torch.cat([normal_scores, anom_scores[np.array(anom_types) == anom_type]])
+        scores_dict[anom_type] = y_score.cpu().numpy().tolist()
         auc_cat = roc_auc_score(y_true.cpu().numpy(), y_score.cpu().numpy())
         auc_dict[anom_type] = auc_cat
         print(f"AUC [{anom_type}]: {auc_cat:.4f}")
@@ -293,6 +312,7 @@ def main(args):
     results = {
         "normal_scores": normal_scores.cpu().numpy().tolist(),
         "anom_scores": anom_scores.cpu().numpy().tolist(),
+        "scores_dict": scores_dict,
         "auc": auc, 
         "num_samples": num_samples,
         "recon_space": args.recon_space,

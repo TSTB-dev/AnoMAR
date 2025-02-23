@@ -164,7 +164,7 @@ def main(args):
                 x, _ = feature_extractor(img)  # (B, c, h, w)
                 
                 # Normalize x
-                x = (x - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
+                # x = (x - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
                 
                 # Logging feature distribution stats
                 avg_x = x.mean()
@@ -276,7 +276,7 @@ def evaluate(denoiser, feature_extractor, vae, anom_loader, normal_loader, in_sh
             z, _ = feature_extractor(x)  # (B, c, h, w)
             
             # Normalize z
-            z = (z - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
+            # z = (z - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
             noised_z = denoiser.q_sample(z, t)  # (B, c, h, w)
             
             return noised_z, z, 
