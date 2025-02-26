@@ -306,21 +306,21 @@ def main(rank, args):
                     (avg_glo, std_glo)
                 )
                 eval_results.update(results)
-        dist.barrier()
-        
-        if rank == 0:
-            gathered_data = [None for _ in range(world_size)]
-        else:
-            gathered_data = None
-        # collect stats
-        dist.gather_object(eval_results, gathered_data, dst=0)
-        if rank == 0:
-            eval_results = {}
-            for data in gathered_data:
-                eval_results.update(data)
-            logger.info(f"Eval results: {eval_results}")
-            wandb.log(eval_results)
-            tb_writer.add_scalars("AUC", eval_results, epoch)
+            
+            if rank == 0:
+                gathered_data = [None for _ in range(world_size)]
+            else:
+                gathered_data = None
+            # collect stats
+            dist.gather_object(eval_results, gathered_data, dst=0)
+            if rank == 0:
+                eval_results = {}
+                for data in gathered_data:
+                    eval_results.update(data)
+                logger.info(f"Eval results: {eval_results}")
+                wandb.log(eval_results)
+                tb_writer.add_scalars("AUC", eval_results, epoch)
+                
         dist.barrier()
         
         if config['optimizer']['scheduler_type'] == 'none':
