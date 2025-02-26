@@ -166,6 +166,8 @@ def main(rank, args):
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     model_ema = copy.deepcopy(model)
+    model_without_ddp = model
+    model_without_ddp.to(device)
     model_ema.to(device)
     model.to(device)
     model = DistributedDataParallel(model, static_graph=True)
@@ -284,6 +286,9 @@ def main(rank, args):
             dist.barrier()
 
         if (epoch + 1) % config["logging"]["save_interval"] == 0 and rank == 0:
+            
+            save_path = save_dir / f"model_latest.pth"
+            torch.save(model_without_ddp.state_dict(), save_path)
             save_path = save_dir / f"model_ema_latest.pth"
             torch.save(model_ema.state_dict(), save_path)
             logger.info(f"Model is saved at {save_dir}")
@@ -294,7 +299,7 @@ def main(rank, args):
             eval_results = {}
             for i in proc_idxs:
                 results = evaluate(
-                    model_ema,
+                    model_without_ddp,
                     feature_extractor,
                     vae,
                     anom_datasets[i],
@@ -323,18 +328,12 @@ def main(rank, args):
                 
         dist.barrier()
         
-        if config['optimizer']['scheduler_type'] == 'none':
-            pass
-        else:
-            # logger.info(f"Epoch {epoch}: LR {scheduler.get_last_lr()}, Loss {loss.item()}")
-            scheduler.step()
-        
     logger.info("Training is done!")
     tb_writer.close()
     
     # save model
     save_path = save_dir / "model_latest.pth"
-    torch.save(model.state_dict(), save_path)
+    torch.save(model_without_ddp.state_dict(), save_path)
     save_path = save_dir / "model_ema_latest.pth"
     torch.save(model_ema.state_dict(), save_path)
     logger.info(f"Model is saved at {save_dir}")
