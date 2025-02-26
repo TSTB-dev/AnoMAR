@@ -124,6 +124,7 @@ def create_denising_model(
             num_res_blocks=num_blocks,
             attention_resolutions=[2, 4, 8],
             channel_mult=channel_mult,
+            num_classes=num_classes,
             num_heads=16,
             num_heads_upsample=-1,
             use_fp16=False,

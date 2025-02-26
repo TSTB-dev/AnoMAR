@@ -109,7 +109,7 @@ class Denoiser(nn.Module):
         t = torch.randint(0, self.train_diffusion.num_timesteps, (target.shape[0], ), device=target.device)  # (B*N, )
         
         # denoising
-        model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
+        model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
         loss_dict = self.train_diffusion.training_losses(self.net, target, t, model_kwargs)
         loss = loss_dict['loss']
         return loss.mean()  # mean over the batch
@@ -137,7 +137,7 @@ class Denoiser(nn.Module):
             sample_fn = self.net.forward_with_cfg
         else:
             noise = torch.randn(*input_shape).to(device)  # (B, C, H, W)
-            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
+            model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
             sample_fn = self.net.forward
         
         # sampling loop
@@ -203,7 +203,7 @@ class Denoiser(nn.Module):
             model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward_with_cfg
         else:
-            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
+            model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
             sample_fn = self.net.forward
             
         indices = list(range(t[0].item()))[::-1]
@@ -245,7 +245,7 @@ class Denoiser(nn.Module):
             model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward_with_cfg
         else:
-            model_kwargs = dict(c=cls_embed, z=z, mask_indices=mask_indices, z_vis=z_vis)
+            model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
             sample_fn = self.net.forward
         
         indices = list(range(t[0].item(), int(self.num_sampling_steps)))
@@ -261,6 +261,30 @@ class Denoiser(nn.Module):
             )
             x_t = out["sample"]
         return x_t
+    
+    def p_sample(self, x_t: Tensor, t: Tensor, cls_label=None, z=None, mask_indices=None, cfg=1.0, z_vis=None, return_noise=False) -> Tensor:
+        cls_embed = None
+        if cls_label is not None:
+            cls_embed = self.cls_embed(cls_label)
+        
+        if not cfg == 1.0:
+            # do classifer free guidance
+            model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
+            sample_fn = self.net.forward_with_cfg
+        else:
+            model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
+            sample_fn = self.net.forward
+        
+        out = self.sample_diffusion.p_sample(
+            sample_fn,
+            x_t,
+            t,
+            clip_denoised=False,
+            model_kwargs=model_kwargs
+        )
+        if not return_noise:
+            return out["eps"]
+        return out["sample"]
             
     
 def get_denoiser(**kwargs) -> Denoiser:

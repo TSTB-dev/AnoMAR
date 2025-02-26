@@ -1,7 +1,7 @@
 
 
 from torchvision import transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from .mnist import MNISTWrapper
 from .mvtec_ad import MVTecAD, AD_CLASSES
@@ -58,6 +58,13 @@ def build_dataset(*, dataset_name: str, data_root: str, train: bool, img_size: i
     elif dataset_name == 'mvtec_loco':
         return MVTecLOCO(data_root=data_root, input_res=img_size, split='train' if train else 'test', \
             transform=build_transforms(img_size, transform_type), is_mask=True, cls_label=True, **kwargs)
+    elif dataset_name == 'mvtec_ad_mc':
+        dss = []
+        for cat in AD_CLASSES:
+            kwargs['category'] = cat
+            dss.append(MVTecAD(data_root=data_root, input_res=img_size, split='train' if train else 'test', \
+                transform=build_transforms(img_size, transform_type), is_mask=True, cls_label=True, **kwargs))
+        return ConcatDataset(dss)
     else:
         raise ValueError(f"Invalid dataset: {dataset_name}")
     

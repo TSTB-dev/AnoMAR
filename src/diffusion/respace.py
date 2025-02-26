@@ -84,6 +84,8 @@ class SpacedDiffusion(GaussianDiffusion):
         kwargs['betas'] = np.array(new_betas)
         super().__init__(**kwargs)
         
+        self.base_diffusion = base_diffusion
+        
     def _wrap_model(self, model):
         if isinstance(model, _WrappedModel):
             return model
@@ -99,6 +101,11 @@ class SpacedDiffusion(GaussianDiffusion):
         self, model, *args, **kwargs
     ):
         return super().p_mean_variance(self._wrap_model(model), *args, **kwargs)
+    
+    def p_mean_variance_org(
+        self, model, *args, **kwargs
+    ):
+        return super().p_mean_variance(model, *args, **kwargs)
     
     def q_sample(
         self, x_0, t, noise=None, **kwargs

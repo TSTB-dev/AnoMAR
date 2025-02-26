@@ -1,7 +1,6 @@
 # CUDA_VISIBLE_DEVICES=4
 # python3 ./src/train_dit.py --config_path ./configs/exp_dit_vae_ad/bottle.yml
-
-CUDA_VISIBLE_DEVICES=4 python3 ./src/train_dit_feature.py --config_path ./configs/exp_unet_feature_ad_smc/bottle.yml 
+python3 ./src/train_dit_feature_dist.py --config_path ./configs/exp_unet_feature_ad_smc/bottle.yml --devices cuda:0 cuda:1 cuda:2 cuda:3 cuda:4 cuda:5 cuda:6 cuda:7
 # CUDA_VISIBLE_DEVICES=5 python3 ./src/train_dit.py --config_path ./configs/exp_dit_vae_ad/capsule.yml & \
 # CUDA_VISIBLE_DEVICES=6 python3 ./src/train_dit.py --config_path ./configs/exp_dit_vae_ad/bottle.yml & \
 # CUDA_VISIBLE_DEVICES=7 python3 ./src/train_dit.py --config_path ./configs/exp_dit_vae_ad/carpet.yml 

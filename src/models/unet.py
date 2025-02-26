@@ -863,7 +863,7 @@ class UNetModel(nn.Module):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward(self, x, t, y=None, **kwargs):
+    def forward(self, x, t, c=None, **kwargs):
         """
         Apply the model to an input batch.
 
@@ -872,17 +872,17 @@ class UNetModel(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        assert (y is not None) == (
+        assert (c is not None) == (
             self.num_classes is not None
-        ), "must specify y if and only if the model is class-conditional"
+        ), "must specify c if and only if the model is class-conditional"
 
         hs = []
         emb = self.time_embed(timestep_embedding(t, self.model_channels))
 
         if self.num_classes is not None:
-            assert y.shape == (x.shape[0],)
-            emb = emb + self.label_emb(y)
-
+            assert c.shape == (x.shape[0],)
+            emb = emb + self.label_emb(c)
+        
         h = x.type(self.dtype)
         for module in self.input_blocks:
             h = module(h, emb)
