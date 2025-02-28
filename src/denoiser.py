@@ -245,6 +245,7 @@ class Denoiser(nn.Module):
             model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
             sample_fn = self.net.forward_with_cfg
         else:
+            # model_kwargs = dict(c=cls_embed, cfg_scale=cfg, z=z, mask_indices=mask_indices)
             model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
             sample_fn = self.net.forward
         

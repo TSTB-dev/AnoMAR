@@ -191,7 +191,7 @@ def main(rank, args):
     if config['optimizer']['scheduler_type'] == 'none':
         pass
     else:
-        scheduler = get_lr_scheduler(optimizer, **config['optimizer'], iter_per_epoch=len(train_loader))
+        scheduler = get_lr_scheduler(optimizer, **config['optimizer'], iter_per_epoch=len(train_loader_ddp))
 
     save_dir = Path(config['logging']['save_dir'])
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -277,7 +277,7 @@ def main(rank, args):
             
             if i % config["logging"]["log_interval"] == 0 and rank == 0:
                 logger.info(f"Epoch {epoch}, Iter {i}, Loss {loss.item()}")      
-                tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader) + i)  
+                tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader_ddp) + i)  
                 wandb.log({"Loss": loss.item(), "LR": scheduler.get_last_lr()})
                 
                 if config["logging"]["save_images"]:

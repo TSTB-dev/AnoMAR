@@ -150,7 +150,7 @@ def main(args):
     for i, batch in tqdm(enumerate(normal_loader), total=len(normal_loader)):
         images = batch["samples"].to(device)
         labels = batch["clslabels"].to(device)
-        masks = batch["masks"]  # (B, 1, H, W)
+#         masks = batch["masks"]  # (B, 1, H, W)
         # Prepare timesteps
         t = torch.tensor([args.start_step] * num_samples * len(images)).to(device)  # (B * K, )
         
@@ -240,7 +240,7 @@ def main(args):
         labels = batch["clslabels"].to(device)
         anom_type = batch["anom_type"]
         anom_types += anom_type
-        masks = batch["masks"]  # (B, 1, H, W)
+       #  masks = batch["masks"]  # (B, 1, H, W)
         
         # Prepare timesteps
         t = torch.tensor([args.start_step] * num_samples * len(images)).to(device)  # (B * K, )

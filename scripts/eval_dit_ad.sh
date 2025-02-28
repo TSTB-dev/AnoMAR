@@ -125,194 +125,194 @@ python src/evaluate_dit_feature.py \
     --num_inference_steps 100 \
     --recon_space feature \
     --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/bottle \
-    --model_ckpt ./results/exp_dit_feature_d4w256/bottle/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/bottle/config.yaml \
+    --output_dir ./results/exp_unet_feature_ad_256/bottle \
+    --model_ckpt ./results/exp_unet_feature_ad_256/bottle/model_ema_latest.pth \
+    --config_path ./results/exp_unet_feature_ad_256/bottle/config.yaml \
     --device cuda \
     --batch_size 1 \
     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/cable \
-    --model_ckpt ./results/exp_dit_feature_d4w256/cable/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/cable/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/cable \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/cable/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/cable/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/capsule \
-    --model_ckpt ./results/exp_dit_feature_d4w256/capsule/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/capsule/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/capsule \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/capsule/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/capsule/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/carpet \
-    --model_ckpt ./results/exp_dit_feature_d4w256/carpet/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/carpet/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/carpet \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/carpet/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/carpet/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/grid \
-    --model_ckpt ./results/exp_dit_feature_d4w256/grid/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/grid/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/grid \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/grid/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/grid/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/hazelnut \
-    --model_ckpt ./results/exp_dit_feature_d4w256/hazelnut/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/hazelnut/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/hazelnut \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/hazelnut/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/hazelnut/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/leather \
-    --model_ckpt ./results/exp_dit_feature_d4w256/leather/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/leather/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/leather \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/leather/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/leather/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/metal_nut \
-    --model_ckpt ./results/exp_dit_feature_d4w256/metal_nut/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/metal_nut/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/metal_nut \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/metal_nut/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/metal_nut/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/pill \
-    --model_ckpt ./results/exp_dit_feature_d4w256/pill/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/pill/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/pill \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/pill/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/pill/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/screw \
-    --model_ckpt ./results/exp_dit_feature_d4w256/screw/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/screw/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/screw \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/screw/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/screw/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/tile \
-    --model_ckpt ./results/exp_dit_feature_d4w256/tile/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/tile/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/tile \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/tile/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/tile/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/toothbrush \
-    --model_ckpt ./results/exp_dit_feature_d4w256/toothbrush/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/toothbrush/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/toothbrush \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/toothbrush/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/toothbrush/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/transistor \
-    --model_ckpt ./results/exp_dit_feature_d4w256/transistor/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/transistor/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/transistor \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/transistor/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/transistor/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/wood \
-    --model_ckpt ./results/exp_dit_feature_d4w256/wood/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/wood/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/wood \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/wood/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/wood/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
-export CUDA_VISIBLE_DEVICES=0
-python src/evaluate_dit_feature.py \
-    --num_samples 1 \
-    --num_inference_steps 100 \
-    --recon_space feature \
-    --start_step 8 \
-    --output_dir ./results/exp_dit_feature_d4w256/zipper \
-    --model_ckpt ./results/exp_dit_feature_d4w256/zipper/model_ema_latest.pth \
-    --config_path ./results/exp_dit_feature_d4w256/zipper/config.yaml \
-    --device cuda \
-    --batch_size 1 \
-    --save_all_images \
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256/zipper \
+#     --model_ckpt ./results/exp_dit_feature_d4w256/zipper/model_ema_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256/zipper/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --save_all_images \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_dit_feature.py \

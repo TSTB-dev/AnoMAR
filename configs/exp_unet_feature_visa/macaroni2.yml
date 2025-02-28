@@ -1,0 +1,52 @@
+diffusion:
+  model_type: 'unet'
+  num_classes: 15
+  target_channels: 3
+  z_channels: 768
+  depth: 2
+  width: 256
+  num_sampling_steps: '100'
+  ema_decay: 0.999
+  learn_sigma: false
+  grad_checkpoint: false
+  patch_size: 1
+  channel_mult: [1,1,2,2]
+vae:
+  model_type: 'vae_kl'
+  embed_dim: 16
+  ch_mult: [1, 1, 2, 2, 4]
+  stride: 16
+  ckpt_path: './weights/vae/kl16.ckpt'
+data:
+  batch_size: 8
+  category: macaroni2
+  data_root: data/visa
+  dataset_name: visa
+  img_size: 256
+  multi_category: false
+  num_normal_samples: -1
+  num_workers: 1
+  pin_memory: true
+  train: true
+  transform_type: default
+optimizer:
+  grad_clip: 1.0
+  init_lr: 0.000001
+  peak_lr: 0.00005
+  final_lr: 0.000005
+  num_epochs: 1000
+  optimizer_name: adamw
+  scheduler_type: warmup_cosine
+  warmup_epochs: 40
+  weight_decay: 0
+logging:
+  log_interval: 10
+  save_interval: 100
+  save_images: false
+  save_dir: 'results/exp_unet_feature_visa/macaroni2'
+evaluation:
+  eval_interval: 50
+  start_step: 8
+meta:
+  seed: 42
+  device: 'cuda'
