@@ -39,6 +39,9 @@ def parser_args():
     parser.add_argument('--device', type=str, default='cuda', help='Device to use')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
     parser.add_argument('--save_all_images', action='store_true', help='Save all images')
+    parser.add_argument('--eval_dataset', type=str, help='Dataset to evaluate', default=None)
+    parser.add_argument('--eval_category', type=str, help='Category to evaluate', default=None)
+    
     
     return parser.parse_args()
 
@@ -83,11 +86,17 @@ def main(args):
     device = args.device
     batch_size = args.batch_size
     num_samples = args.num_samples
-    category = config['data']['category']
-
+    dataset = config['data']['dataset_name'] if args.eval_dataset is None else args.eval_dataset
+    category = config['data']['category'] if args.eval_category is None else args.eval_category
+    print(f"Evaluating on category: {category}")
+    
     dataset_config = config['data']
     dataset_config['batch_size'] = batch_size
+    dataset_config['category'] = category
+    dataset_config['dataset_name'] = dataset
     dataset_config['transform_type'] = 'default'
+    dataset_config['train'] = True
+    dataset_config['normal_only'] = False
     train_dataset = build_dataset(**dataset_config)
     dataset_config['train'] = False
     dataset_config['anom_only'] = True
@@ -98,13 +107,13 @@ def main(args):
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
     anom_loader = DataLoader(anom_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
     normal_loader = DataLoader(normal_dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
-
+    
     vae: AutoencoderKL = create_vae(**config['vae'])
     vae.to(device).eval()
     vae_embed_dim = config['vae']['embed_dim']
     vae_stride = config['vae']['stride']
     img_size = config['data']['img_size']
-    diff_in_sh = (272, img_size // vae_stride, img_size // vae_stride)
+    diff_in_sh = (272, 16, 16)
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     denoiser_ckpt = torch.load(args.model_ckpt, map_location="cpu", weights_only=True)
@@ -121,6 +130,7 @@ def main(args):
             'pretrained': True,
             'stride': 16
         }
+        # model_kwargs = {'model_type': 'wide_resnet50_2'}
         print(f"Using feature space reconstruction with {model_kwargs['model_type']} backbone")
         feature_extractor = get_backbone(**model_kwargs)
         feature_extractor.to(device).eval()
@@ -157,7 +167,7 @@ def main(args):
         def perturb(x, t):
             z, _ = feature_extractor(x)
             # Normalize x
-            z = (z - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
+            z = (z - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
             z = z.repeat_interleave(num_samples, dim=0)  # (B*K, c, h, w)
             
             noised_z = model.q_sample(z, t)  # (B*K, c, h, w)

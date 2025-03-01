@@ -876,6 +876,7 @@ class UNetModel(nn.Module):
             self.num_classes is not None
         ), "must specify c if and only if the model is class-conditional"
 
+        # import pdb; pdb.set_trace()
         hs = []
         emb = self.time_embed(timestep_embedding(t, self.model_channels))
 

@@ -76,7 +76,7 @@ class Denoiser(nn.Module):
         self.train_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing="", noise_schedule='linear', learn_sigma=learn_sigma, rescale_learned_sigmas=False)
         self.sample_diffusion: SpacedDiffusion = create_diffusion(timestep_respacing=num_sampling_steps, noise_schedule='linear')
         
-    def forward(self, target, cls_label=None, z=None, mask_indices=None, z_vis=None):
+    def forward(self, target, cls_label=None, z=None, mask_indices=None, z_vis=None, batch_mean=True):
         """Denoising step for training.
         Args:
             target (Tensor): the target image to denoise (B, c, h, w) or (B, N, C)
@@ -112,7 +112,11 @@ class Denoiser(nn.Module):
         model_kwargs = dict(c=cls_label, z=z, mask_indices=mask_indices, z_vis=z_vis)
         loss_dict = self.train_diffusion.training_losses(self.net, target, t, model_kwargs)
         loss = loss_dict['loss']
-        return loss.mean()  # mean over the batch
+        
+        if batch_mean:
+            return loss.mean()  # mean over the batch
+        else:
+            return loss
     
     def sample(self, input_shape, cls_label=None, z=None, mask_indices=None, temperature=1.0, cfg=1.0, z_vis=None, device="cuda", strategy="org"):
         """Denoising step for sampling.

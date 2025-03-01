@@ -15,8 +15,8 @@ import argparse
 import yaml
 from pprint import pprint
 
-from datasets import build_dataset
-from utils import get_optimizer, get_lr_scheduler
+from datasets import build_dataset, AD_CLASSES
+from utils import get_optimizer, get_lr_scheduler, AverageMeter
 from denoiser import get_denoiser, Denoiser
 from models import create_vae, AutoencoderKL
 from backbones import get_backbone
@@ -154,6 +154,7 @@ def main(rank, args):
         pin_memory=config['data']['pin_memory'],
         drop_last=True
     )
+    all_classes = [ds.category for ds in train_dataset.datasets]
     
     vae: AutoencoderKL = create_vae(**config['vae'])
     vae.to(device).eval()
@@ -217,6 +218,8 @@ def main(rank, args):
     
     model.train()
     logger.info(f"Steps per epoch: {len(train_loader_ddp)}")
+    meter_dict = {f'{clsname}': AverageMeter()  for clsname in all_classes}
+    
     for epoch in range(config['optimizer']['num_epochs']):
         for i, data in enumerate(train_loader_ddp):
             img, labels = data["samples"], data["clslabels"]    # (B, C, H, W), (B,)
@@ -252,9 +255,19 @@ def main(rank, args):
             # x = rearrange(x, 'b (h w) c -> b c h w', h=16, w=16)
             # x = img
             # forward
-            # img = _process_inputs(img)
-            loss = model(x, labels)  
+            # img = _process_inputs(img) 
+            loss = model(x, labels, batch_mean=False)    # (B, )
             
+            class_losses_local = torch.zeros(len(all_classes)).to(device)
+            class_counts_local = torch.zeros(len(all_classes)).to(device)
+            
+            for cls_idx in range(len(all_classes)):
+                cls_mask = labels == cls_idx
+                if cls_mask.sum() > 0:
+                    class_losses_local[cls_idx] = loss[cls_mask].sum()
+                    class_counts_local[cls_idx] = cls_mask.sum()
+            
+            loss = loss.mean()
             # backward
             optimizer.zero_grad()
             loss.backward()
@@ -270,15 +283,24 @@ def main(rank, args):
             optimizer.step()
             scheduler.step()
             
-            # update ema
+            dist.all_reduce(class_losses_local, op=dist.ReduceOp.SUM)
+            dist.all_reduce(class_counts_local, op=dist.ReduceOp.SUM)   
+            
             if rank == 0:
-                for ema_param, model_param in zip(model_ema.parameters(), model.parameters()):
+                for ema_param, model_param in zip(model_ema.parameters(), model_without_ddp.parameters()):
                     ema_param.data.mul_(ema_decay).add_(model_param.data, alpha=1.0 - ema_decay)
+                
+                class_counts_local = torch.clamp_min(class_counts_local, 1e-8)
+                class_loss_mean = class_losses_local / class_counts_local
+                for cls_idx in range(len(all_classes)):
+                    cls_name = AD_CLASSES[cls_idx]
+                    meter_dict[cls_name].update(class_loss_mean[cls_idx].item(), class_counts_local[cls_idx].item())    
             
             if i % config["logging"]["log_interval"] == 0 and rank == 0:
                 logger.info(f"Epoch {epoch}, Iter {i}, Loss {loss.item()}")      
                 tb_writer.add_scalar("Loss", loss.item(), epoch * len(train_loader_ddp) + i)  
                 wandb.log({"Loss": loss.item(), "LR": scheduler.get_last_lr()})
+                wandb.log({f"Loss/{k}": v.avg for k, v in meter_dict.items()})
                 
                 if config["logging"]["save_images"]:
                     save_images(model_ema, vae, tb_writer, epoch, i, device)

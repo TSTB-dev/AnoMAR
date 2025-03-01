@@ -98,7 +98,8 @@ def main(args):
     img_size = config['data']['img_size']
     # diff_in_sh = (vae_embed_dim, img_size // vae_stride, img_size // vae_stride)
     # diff_in_sh = (3, img_size, img_size)
-    diff_in_sh = (272, 16, 16)
+    # diff_in_sh = (272, 16, 16)  # For EfficientNet-b4
+    diff_in_sh = (1792, 16, 16)  # For WideResNet50-2
     
     model: Denoiser = get_denoiser(**config['diffusion'], input_shape=diff_in_sh)
     ema_decay = config['diffusion']['ema_decay']
@@ -108,13 +109,15 @@ def main(args):
     
     # feature_ln = torch.nn.LayerNorm(diff_in_sh[0]).to(device)
 
+    # model_kwargs = {
+    #     'model_type': 'efficientnet-b4',
+    #     'outblocks': (1, 5, 9, 21),
+    #     'outstrides': (2, 4, 8, 16),
+    #     'pretrained': True,
+    #     'stride': 16
+    # }
     model_kwargs = {
-        'model_type': 'efficientnet-b4',
-        'outblocks': (1, 5, 9, 21),
-        'outstrides': (2, 4, 8, 16),
-        'pretrained': True,
-        'stride': 16
-    }
+        "model_type": "wide_resnet50_2"}
     print(f"Using feature space reconstruction with {model_kwargs['model_type']} backbone")
     
     feature_extractor = get_backbone(**model_kwargs)
@@ -164,7 +167,7 @@ def main(args):
                 x, _ = feature_extractor(img)  # (B, c, h, w)
                 
                 # Normalize x
-                x = (x - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
+                x = (x - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
                 
                 # Logging feature distribution stats
                 avg_x = x.mean()
@@ -238,12 +241,6 @@ def main(args):
                 (avg_glo, std_glo)
             )
         
-        if config['optimizer']['scheduler_type'] == 'none':
-            pass
-        else:
-            # print(f"Epoch {epoch}: LR {scheduler.get_last_lr()}, Loss {loss.item()}")
-            scheduler.step()
-        
     print("Training is done!")
     tb_writer.close()
     
@@ -276,7 +273,7 @@ def evaluate(denoiser, feature_extractor, vae, anom_loader, normal_loader, in_sh
             z, _ = feature_extractor(x)  # (B, c, h, w)
             
             # Normalize z
-            z = (z - avg_glo.view(1, -1, 1, 1)) / std_glo.view(1, -1, 1, 1)
+            z = (z - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
             noised_z = denoiser.q_sample(z, t)  # (B, c, h, w)
             
             return noised_z, z, 

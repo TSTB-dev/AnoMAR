@@ -8,7 +8,7 @@ from torchvision import models
 from torchvision.models import VGG19_Weights, EfficientNet_V2_S_Weights, EfficientNet_V2_M_Weights, EfficientNet_V2_L_Weights, ResNet50_Weights
 
 from .efficientnet import build_efficient
-from .resnet import wide_resnet101_2
+from .resnet import wide_resnet101_2, wide_resnet50_2, resnet50
 
 def get_efficientnet(model_name, **kwargs):
     return build_efficient(model_name, **kwargs)
@@ -78,10 +78,10 @@ def get_backbone(**kwargs):
         return BackboneWrapper(net, [0.125, 0.25, 0.5, 1.0])
     elif 'vgg' in model_name:
         return BackboneModel(model_name, [3, 8, 17, 26])
-    elif 'wide_resnet' in model_name:
+    elif 'wide_resnet50_2' in model_name:
         ckpt_path = kwargs.get('ckpt_path', None)
         pretrained = False if ckpt_path is not None else True
-        model = wide_resnet101_2(pretrained=pretrained)
+        model = wide_resnet50_2(pretrained=pretrained)
         if ckpt_path is not None:
             print(f"Loading checkpoint from {ckpt_path}")
             model_ckpt = torch.load(ckpt_path, weights_only=True)
@@ -90,7 +90,20 @@ def get_backbone(**kwargs):
                 # replace the key name
                 model_ckpt[k_new] = model_ckpt.pop(k)
             model.load_state_dict(model_ckpt)
-        return model
+        return BackboneWrapper(model, [0.25, 0.5, 1.0])
+    elif 'resnet50' in model_name:
+        ckpt_path = kwargs.get('ckpt_path', None)
+        pretrained = False if ckpt_path is not None else True
+        model = resnet50(pretrained=pretrained)
+        if ckpt_path is not None:
+            print(f"Loading checkpoint from {ckpt_path}")
+            model_ckpt = torch.load(ckpt_path, weights_only=True)
+            for k,v in list(model_ckpt.items()):
+                k_new = k.replace("module.","")
+                # replace the key name
+                model_ckpt[k_new] = model_ckpt.pop(k)
+            model.load_state_dict(model_ckpt)
+        return BackboneWrapper(model, [0.25, 0.5, 1.0])
     else:
         raise ValueError(f"Invalid backbone model: {model_name}")
 
@@ -188,17 +201,25 @@ class BackboneWrapper(nn.Module):
             self.downsamples.append(nn.Upsample(scale_factor=scale_factor, mode='bilinear'))
         
     def forward(self, x):
-        y = self.backbone(x)["features"]
+    
+        out = self.backbone(x)
+        if isinstance(out, dict):
+            y = out["features"]
+        else:
+            y = out
         concat_y = torch.cat([downsample(y[i]) for i, downsample in enumerate(self.downsamples)], dim=1)
         return concat_y, y
     
 if __name__ == "__main__":
+    # model_kwargs = {
+    #     'model_type': 'efficientnet-b4',
+    #     'outblocks': (1, 5, 9, 21),
+    #     'outstrides': (2, 4, 8, 16),
+    #     'pretrained': True,
+    #     'stride': 16
+    # }
     model_kwargs = {
-        'model_type': 'efficientnet-b4',
-        'outblocks': (1, 5, 9, 21),
-        'outstrides': (2, 4, 8, 16),
-        'pretrained': True,
-        'stride': 16
+        "model_type": "resnet50",
     }
     model = get_backbone(**model_kwargs).to('cuda')
     x = torch.randn(1, 3, 256, 256).to('cuda')

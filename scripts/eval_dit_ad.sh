@@ -119,18 +119,175 @@
 #     --device cuda \
 #     --batch_size 1
 
+
+# ==============================================================================
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category tile \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category tile \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category tile \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category toothbrush \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category toothbrush \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category toothbrush \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category transistor \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category transistor \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/w2d256ep1000/ \
+#     --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+#     --config_path ./results/w2d256ep1000/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+#     --eval_dataset mvtec_ad \
+#     --eval_category transistor \
+
 export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_dit_feature.py \
     --num_samples 1 \
     --num_inference_steps 100 \
     --recon_space feature \
     --start_step 8 \
-    --output_dir ./results/exp_unet_feature_ad_256/bottle \
-    --model_ckpt ./results/exp_unet_feature_ad_256/bottle/model_ema_latest.pth \
-    --config_path ./results/exp_unet_feature_ad_256/bottle/config.yaml \
+    --output_dir ./results/w2d256ep1000/ \
+    --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+    --config_path ./results/w2d256ep1000/config.yaml \
     --device cuda \
     --batch_size 1 \
-    --save_all_images \
+    --eval_dataset mvtec_ad \
+    --eval_category zipper \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 16 \
+    --output_dir ./results/w2d256ep1000/ \
+    --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+    --config_path ./results/w2d256ep1000/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+    --eval_dataset mvtec_ad \
+    --eval_category zipper \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 32 \
+    --output_dir ./results/w2d256ep1000/ \
+    --model_ckpt ./results/w2d256ep1000/model_latest.pth \
+    --config_path ./results/w2d256ep1000/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+    --eval_dataset mvtec_ad \
+    --eval_category zipper \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_dit_feature.py \

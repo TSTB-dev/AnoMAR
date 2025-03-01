@@ -469,6 +469,7 @@ class DiT(nn.Module):
         
         _, N, _ = x.shape
         t = self.t_embedder(t)  # (B, D)
+        c = self.y_embedder(c)  # (B, D)
         
         cond = t + c
         if self.conditioning_scheme == 'adaLN':
