@@ -32,7 +32,7 @@ def build_transforms(img_size, transform_type):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-    elif transform_type == 'rotation':
+    elif transform_type == 'rotate':
         return transforms.Compose([
             transforms.Resize((img_size, img_size)),
             transforms.RandomRotation(15),

@@ -253,13 +253,11 @@ python src/evaluate_dit_feature.py \
     --num_inference_steps 100 \
     --recon_space feature \
     --start_step 8 \
-    --output_dir ./results/w2d256ep1000/ \
-    --model_ckpt ./results/w2d256ep1000/model_latest.pth \
-    --config_path ./results/w2d256ep1000/config.yaml \
+    --output_dir ./results/exp_dit_feature_d4w256_lr/wood \
+    --model_ckpt ./results/exp_dit_feature_d4w256_lr/wood/model_latest.pth \
+    --config_path ./results/exp_dit_feature_d4w256_lr/wood/config.yaml \
     --device cuda \
     --batch_size 1 \
-    --eval_dataset mvtec_ad \
-    --eval_category zipper \
 
 export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_dit_feature.py \
@@ -267,13 +265,11 @@ python src/evaluate_dit_feature.py \
     --num_inference_steps 100 \
     --recon_space feature \
     --start_step 16 \
-    --output_dir ./results/w2d256ep1000/ \
-    --model_ckpt ./results/w2d256ep1000/model_latest.pth \
-    --config_path ./results/w2d256ep1000/config.yaml \
+    --output_dir ./results/exp_dit_feature_d4w256_lr/wood \
+    --model_ckpt ./results/exp_dit_feature_d4w256_lr/wood/model_latest.pth \
+    --config_path ./results/exp_dit_feature_d4w256_lr/wood/config.yaml \
     --device cuda \
     --batch_size 1 \
-    --eval_dataset mvtec_ad \
-    --eval_category zipper \
 
 export CUDA_VISIBLE_DEVICES=0
 python src/evaluate_dit_feature.py \
@@ -281,13 +277,119 @@ python src/evaluate_dit_feature.py \
     --num_inference_steps 100 \
     --recon_space feature \
     --start_step 32 \
-    --output_dir ./results/w2d256ep1000/ \
-    --model_ckpt ./results/w2d256ep1000/model_latest.pth \
-    --config_path ./results/w2d256ep1000/config.yaml \
+    --output_dir ./results/exp_dit_feature_d4w256_lr/wood \
+    --model_ckpt ./results/exp_dit_feature_d4w256_lr/wood/model_latest.pth \
+    --config_path ./results/exp_dit_feature_d4w256_lr/wood/config.yaml \
     --device cuda \
     --batch_size 1 \
-    --eval_dataset mvtec_ad \
-    --eval_category zipper \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 8 \
+    --output_dir ./results/exp_dit_feature_d4w256_lr/zipper \
+    --model_ckpt ./results/exp_dit_feature_d4w256_lr/zipper/model_latest.pth \
+    --config_path ./results/exp_dit_feature_d4w256_lr/zipper/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 16 \
+    --output_dir ./results/exp_dit_feature_d4w256_lr/zipper \
+    --model_ckpt ./results/exp_dit_feature_d4w256_lr/zipper/model_latest.pth \
+    --config_path ./results/exp_dit_feature_d4w256_lr/zipper/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+
+export CUDA_VISIBLE_DEVICES=0
+python src/evaluate_dit_feature.py \
+    --num_samples 1 \
+    --num_inference_steps 100 \
+    --recon_space feature \
+    --start_step 32 \
+    --output_dir ./results/exp_dit_feature_d4w256_lr/zipper \
+    --model_ckpt ./results/exp_dit_feature_d4w256_lr/zipper/model_latest.pth \
+    --config_path ./results/exp_dit_feature_d4w256_lr/zipper/config.yaml \
+    --device cuda \
+    --batch_size 1 \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256_lr/toothbrush \
+#     --model_ckpt ./results/exp_dit_feature_d4w256_lr/toothbrush/model_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256_lr/toothbrush/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/exp_dit_feature_d4w256_lr/toothbrush \
+#     --model_ckpt ./results/exp_dit_feature_d4w256_lr/toothbrush/model_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256_lr/toothbrush/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/exp_dit_feature_d4w256_lr/toothbrush \
+#     --model_ckpt ./results/exp_dit_feature_d4w256_lr/toothbrush/model_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256_lr/toothbrush/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 8 \
+#     --output_dir ./results/exp_dit_feature_d4w256_lr/transistor \
+#     --model_ckpt ./results/exp_dit_feature_d4w256_lr/transistor/model_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256_lr/transistor/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 16 \
+#     --output_dir ./results/exp_dit_feature_d4w256_lr/transistor \
+#     --model_ckpt ./results/exp_dit_feature_d4w256_lr/transistor/model_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256_lr/transistor/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
+
+# export CUDA_VISIBLE_DEVICES=0
+# python src/evaluate_dit_feature.py \
+#     --num_samples 1 \
+#     --num_inference_steps 100 \
+#     --recon_space feature \
+#     --start_step 32 \
+#     --output_dir ./results/exp_dit_feature_d4w256_lr/transistor \
+#     --model_ckpt ./results/exp_dit_feature_d4w256_lr/transistor/model_latest.pth \
+#     --config_path ./results/exp_dit_feature_d4w256_lr/transistor/config.yaml \
+#     --device cuda \
+#     --batch_size 1 \
 
 # export CUDA_VISIBLE_DEVICES=0
 # python src/evaluate_dit_feature.py \

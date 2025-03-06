@@ -194,6 +194,41 @@ class AverageMeter(object):
     def get_avg(self):
         return self.avg
 
+class CosineAnnealingScheduler:
+    def __init__(self, optimizer, t_total: int, init_lr: float, min_lr: float):
+        """
+        Args:
+            optimizer (Optimizer): The optimizer to update.
+            t_total (int): Total number of steps for the schedule.
+            init_lr (float): Initial learning rate.
+            min_lr (float): Minimum learning rate.
+        """
+        self.optimizer = optimizer
+        self.t_total = t_total
+        self.init_lr = init_lr
+        self.min_lr = min_lr
+        self.step_num = 0
+        
+        # Initialize the optimizer's learning rate.
+        self._set_lr(init_lr)
+    
+    def _set_lr(self, lr: float):
+        """Sets the learning rate for all parameter groups."""
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = lr
+        self.last_lr = lr
+    
+    def step(self):
+        """Updates the learning rate based on the current step."""
+        self.step_num += 1
+        progress = self.step_num / max(1, self.t_total)
+        lr = self.min_lr + 0.5 * (self.init_lr - self.min_lr) * (1 + math.cos(math.pi * progress))
+        self._set_lr(lr)
+        
+    def get_last_lr(self):
+        """Returns the last set learning rate."""
+        return self.last_lr
+
 class WarmupCosineAnnealingScheduler:
     def __init__(self, optimizer, warmup_steps: int, t_total: int, init_lr: float, peak_lr: float):
         """
@@ -315,10 +350,11 @@ def get_lr_scheduler(
         torch.optim.lr_scheduler._LRScheduler: Learning rate scheduler
     """
     if scheduler_type == "cosine":
-        return torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, 
-            T_max=iter_per_epoch * num_epochs,
-            eta_min=init_lr,
+        return CosineAnnealingScheduler(
+            optimizer=optimizer,
+            t_total=num_epochs * iter_per_epoch,
+            init_lr=init_lr,
+            min_lr=kwargs.get("final_lr", 1e-6),
         )
     elif scheduler_type == "warmup_cosine":
         return WarmupCosineAnnealingScheduler(

@@ -516,7 +516,7 @@ class GaussianDiffusion:
         # Equation 12. reversed
         mean_pred = out["pred_xstart"] * torch.sqrt(alpha_bar_next) + torch.sqrt(1 - alpha_bar_next) * eps
 
-        return {"sample": mean_pred, "pred_xstart": out["pred_xstart"]}
+        return {"sample": mean_pred, "pred_xstart": out["pred_xstart"], "eps": eps}
 
     def ddim_sample_loop(
         self,

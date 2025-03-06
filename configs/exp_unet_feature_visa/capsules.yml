@@ -38,15 +38,17 @@ optimizer:
   optimizer_name: adamw
   scheduler_type: warmup_cosine
   warmup_epochs: 40
-  weight_decay: 0
+  weight_decay: 0.0
 logging:
   log_interval: 10
   save_interval: 100
   save_images: false
-  save_dir: 'results/exp_unet_feature_visa/capsules'
+  save_dir: 'results/exp_unet_feature_visa_pdn/capsules'
 evaluation:
-  eval_interval: 50
-  start_step: 8
+  eval_interval: 20
+  early_stop: 1000
+  eval_step: 3
+  save_best: true
 meta:
   seed: 42
   device: 'cuda'
