@@ -34,7 +34,7 @@ optimizer:
   init_lr: 0.00005
   peak_lr: 0.00005
   final_lr: 0.0000001
-  num_epochs: 2000
+  num_epochs: 1000
   optimizer_name: adamw
   scheduler_type: warmup_cosine
   warmup_epochs: 40
@@ -43,9 +43,9 @@ logging:
   log_interval: 10
   save_interval: 100
   save_images: false
-  save_dir: 'results/exp_unet_feature_ad_es/transistor'
+  save_dir: 'results/exp_unet_feature_ad_best/transistor'
 evaluation:
-  eval_interval: 20
+  eval_interval: 5
   early_stop: 1000
   eval_step: 3
   save_best: true

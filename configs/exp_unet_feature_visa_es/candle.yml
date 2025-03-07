@@ -19,9 +19,9 @@ vae:
   ckpt_path: './weights/vae/kl16.ckpt'
 data:
   batch_size: 8
-  category: tile
-  data_root: data/mvtec_ad
-  dataset_name: mvtec_ad
+  category: candle
+  data_root: data/visa
+  dataset_name: visa
   img_size: 256
   multi_category: false
   num_normal_samples: -1
@@ -31,19 +31,19 @@ data:
   transform_type: default
 optimizer:
   grad_clip: 1.0
-  init_lr: 0.00005
+  init_lr: 0.000001
   peak_lr: 0.00005
-  final_lr: 0.0000001
+  final_lr: 0.000005
   num_epochs: 1000
   optimizer_name: adamw
   scheduler_type: warmup_cosine
   warmup_epochs: 40
-  weight_decay: 0
+  weight_decay: 0.0
 logging:
   log_interval: 10
   save_interval: 100
   save_images: false
-  save_dir: 'results/exp_unet_feature_ad_best/tile'
+  save_dir: 'results/exp_unet_feature_visa_es/candle'
 evaluation:
   eval_interval: 5
   early_stop: 1000

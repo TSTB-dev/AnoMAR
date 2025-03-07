@@ -54,6 +54,14 @@ def convert2image(x):
     else:
         return x.cpu().numpy()
 
+@torch.no_grad()
+def extract_features(x, model):
+    b, c, h, w = x.shape
+    out = model.forward_features(x)  # (B, 197, d)
+    out = out[:, 1:]  # remove the first token
+    out = rearrange(out, 'b (h w) d -> b d h w', h=14, w=14)
+    return out
+    
 def main(args):
     
     def load_config(config_path):
@@ -92,6 +100,10 @@ def main(args):
         pin_memory=config['data']['pin_memory'], num_workers=config['data']['num_workers'], drop_last=True)
 
     diff_in_sh = (272, 16, 16)  # For EfficientNet-b4
+    # diff_in_sh = (24, 128, 128)
+    depth = -4
+    # diff_in_sh = (384, 14, 14)
+    # depth = 1
     # diff_in_sh = (1792, 16, 16)  # For WideResNet50-2
     # diff_in_sh = (384, 28, 28)  # For PDN-medium
     # diff_in_sh = (272, 32, 32)
@@ -110,14 +122,20 @@ def main(args):
         'pretrained': True,
         'stride': 16
     }
-    # model_kwargs = {
-    #     "model_type": "wide_resnet50_2"}
-    # model_kwargs = {
-    #     "model_type": "pdn_medium",
-    # }
+    # # model_kwargs = {
+    # #     "model_type": "wide_resnet50_2"}
+    # # model_kwargs = {
+    # #     "model_type": "pdn_medium",
+    # # }
     print(f"Using feature space reconstruction with {model_kwargs['model_type']} backbone")
     
     feature_extractor = get_backbone(**model_kwargs)
+    # import timm
+    # feature_extractor = timm.create_model(
+    #     'vit_small_patch16_224.dino',
+    #     pretrained=True,
+    #     num_classes=0,  # remove classifier nn.Linear
+    # )
     feature_extractor.to(device).eval()
 
     # optimizer = get_optimizer([model, feature_ln], **config['optimizer'])
@@ -143,7 +161,9 @@ def main(args):
     for i, data in tqdm(enumerate(train_loader), total=len(train_loader)):
         img = data["samples"].to(device)
         with torch.no_grad():
-            x, _ = feature_extractor(img)
+            # x = extract_features(img, feature_extractor)
+            x, x_list = feature_extractor(img)
+            # x = x_list[depth]
             # x = feature_extractor(img)
             features.append(x)
     features = torch.cat(features, dim=0)   # (N, c, h, w)
@@ -162,11 +182,14 @@ def main(args):
             labels = labels.to(device)
             
             with torch.no_grad():
-                x, _ = feature_extractor(img)  # (B, c, h, w)
+                # x = extract_features(img, feature_extractor)  # (B, c, h, w)
+                # import pdb; pdb.set_trace()
+                x, x_list = feature_extractor(img)  # (B, c, h, w)
+                # x = x_list[depth]
                 # x = feature_extractor(img)  # (B, c, h, w)
                 
                 # Normalize x
-                x = (x - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
+                # x = (x - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
                 
             loss = model(x, labels)  
             
@@ -208,15 +231,14 @@ def main(args):
                 epoch + 1,
                 config["evaluation"]["eval_step"],
                 device,
-                (avg_glo, std_glo)
+                (avg_glo, std_glo),
+                depth
             )
             
             if current_auc > best_auc:
                 best_auc = current_auc
                 save_path = save_dir / f"model_best.pth"
                 torch.save(model.state_dict(), save_path)
-                save_path = save_dir / f"model_ema_best.pth"
-                torch.save(model_ema.state_dict(), save_path)
                 print(f"Model is saved at {save_dir}")
                 
                 es_count = 0
@@ -252,9 +274,14 @@ def init_denoiser(num_inference_steps, device, config, in_sh, inherit_model=None
     model.to(device).eval()
     return model
 
+def calculate_log_pdf(x):
+    ll = -0.5 * (x ** 2 + np.log(2 * np.pi))
+    ll = ll.sum(dim=(1, 2, 3))
+    return ll
+
 @torch.no_grad()
 def evaluate(denoiser, feature_extractor, anom_loader, normal_loader, config, in_sh, epoch, eval_step, device, \
-    global_stats):
+    global_stats, depth):
     avg_glo, std_glo = global_stats
     denoiser.eval()
     feature_extractor.eval()
@@ -264,14 +291,20 @@ def evaluate(denoiser, feature_extractor, anom_loader, normal_loader, config, in
     print(f"Evaluating on {len(anom_loader)} anomalous samples and {len(normal_loader)} normal samples")
     
     start_t = torch.tensor([0] * 8, device=device, dtype=torch.long)
-    normal_scores = []
+    normal_ats = []
+    normal_nlls = []
+    losses = []
     for i, batch in enumerate(normal_loader):
         images = batch["samples"].to(device)
         labels = batch["clslabels"].to(device)
         
-        features, _ = feature_extractor(images)
+        # features = extract_features(images, feature_extractor)
+        features, features_list = feature_extractor(images)
+        # features = features_list[depth]
         # features = feature_extractor(images)
-        features = (features - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
+        # features = (features - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
+        loss = denoiser(features, labels)
+        losses.append(loss.cpu().numpy())
         latents_last = eval_denoiser.ddim_reverse_sample(
             features, start_t, labels, eta=0.0
         )
@@ -280,17 +313,24 @@ def evaluate(denoiser, feature_extractor, anom_loader, normal_loader, config, in
         min_ats_spatial = ats.view(ats.shape[0], -1).min(dim=1)[0]  # (bs, )
         max_ats_spatial = ats.view(ats.shape[0], -1).max(dim=1)[0]  # (bs, )
         ats = torch.abs(min_ats_spatial - max_ats_spatial)  # (bs, )
+        nll = calculate_log_pdf(latents_last.cpu()) * -1
+    
+        normal_nlls.extend(nll.cpu().numpy())
+        normal_ats.extend(ats.cpu().numpy())
         
-        normal_scores.extend(ats.cpu().numpy())
-        
-    anomaly_scores = []
+    anomaly_ats = []
+    anomaly_nlls = []
     for i, batch in enumerate(anom_loader):
         images = batch["samples"].to(device)
         labels = batch["clslabels"].to(device)
         
-        features, _ = feature_extractor(images)
+        # features = extract_features(images, feature_extractor)
+        features, features_list = feature_extractor(images)
+        # features = features_list[depth] 
         # features = feature_extractor(images)
-        features = (features - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
+        # features = (features - avg_glo.view(1, -1, 1, 1)) / (std_glo.view(1, -1, 1, 1) + 1e-6)
+        loss = denoiser(features, labels)
+        losses.append(loss.cpu().numpy())
         latents_last = eval_denoiser.ddim_reverse_sample(
             features, start_t, labels, eta=0.0
         )
@@ -299,13 +339,34 @@ def evaluate(denoiser, feature_extractor, anom_loader, normal_loader, config, in
         min_ats_spatial = ats.view(ats.shape[0], -1).min(dim=1)[0]
         max_ats_spatial = ats.view(ats.shape[0], -1).max(dim=1)[0]
         ats = torch.abs(min_ats_spatial - max_ats_spatial)
+        nll = calculate_log_pdf(latents_last.cpu()) * -1
         
-        anomaly_scores.extend(ats.cpu().numpy())
+        anomaly_nlls.extend(nll.cpu().numpy())
+        anomaly_ats.extend(ats.cpu().numpy())
     
-    normal_scores = np.array(normal_scores)
-    anomaly_scores = np.array(anomaly_scores)
+    losses = np.array(losses)
+    print(f"Loss: {losses.mean()} at epoch {epoch}")
+    wandb.log({"Eval/Loss": losses.mean()})
+    
+    normal_ats = np.array(normal_ats)
+    anomaly_ats = np.array(anomaly_ats)
+    normal_nlls = np.array(normal_nlls)
+    anomaly_nlls = np.array(anomaly_nlls)
+    
 
-    y_true = np.concatenate([np.zeros(len(normal_scores)), np.ones(len(anomaly_scores))])
+    ats_min = np.min([normal_ats.min(), anomaly_ats.min()])
+    ats_max = np.max([normal_ats.max(), anomaly_ats.max()])
+    nlls_min = np.min([normal_nlls.min(), anomaly_nlls.min()])
+    nlls_max = np.max([normal_nlls.max(), anomaly_nlls.max()])
+
+    normal_ats = (normal_ats - ats_min) / (ats_max - ats_min)
+    anomaly_ats = (anomaly_ats - ats_min) / (ats_max - ats_min)
+    normal_nlls = (normal_nlls - nlls_min) / (nlls_max - nlls_min)
+    anomaly_nlls = (anomaly_nlls - nlls_min) / (nlls_max - nlls_min)
+
+    y_true = np.concatenate([np.zeros(len(normal_ats)), np.ones(len(anomaly_ats))])
+    normal_scores = normal_ats + normal_nlls
+    anomaly_scores = anomaly_ats + anomaly_nlls
     y_score = np.concatenate([normal_scores, anomaly_scores])
     
     roc_auc = roc_auc_score(y_true, y_score)
